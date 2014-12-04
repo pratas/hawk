@@ -3,6 +3,10 @@
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#include <unistd.h>
 
 typedef unsigned long long ULL;
 typedef unsigned char Char;
@@ -160,6 +164,6 @@ int main(int argc, char *argv[]){
     fileSize += strlen((char *)read->scores);
     }
 
-  fprintf("filesize: %llu\n", fileSize);
+  fprintf(stderr, "filesize: %llu\n", fileSize);
   return 0;
   }

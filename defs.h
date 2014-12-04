@@ -31,6 +31,7 @@ uint64_t garbage;
 #define MFILENM     256
 #define BIN_LINE    512
 #define DEF_HELP    0
+#define DEF_MODE    0
 #define DEF_VERBOSE 0
 #define DEF_PARAM   0
 #define DEF_FILTER  1
@@ -62,10 +63,10 @@ uint64_t garbage;
 #define SCACHE      32
 #define MIN_LEVEL   0
 #define MAX_LEVEL   9
-#define HASH_TABLE  1
+#define HASH_TABLE  2
+#define BLOOM_TABLE 1
 #define ARRAY_TABLE 0
-#define HSIZE       16777259 // 33554471  // NEXT PRIME AFTER 16777216 (24 BITS)
-#define HASH_BEGIN  268435457  // (4^14)+1
+#define DEEP_CTX    268435457  // (4^14)+1
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

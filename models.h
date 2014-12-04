@@ -5,18 +5,24 @@
 #include "defs.h"
 #include "param.h"
 #include "mem.h"
+#include "bloom.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // MODELS SCHEME
 //
-typedef uint16_t ACC;        // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
-typedef uint8_t  HCC;        // SIZE OF COUNTERS FOR HASH TABLE
-typedef uint16_t ENTMAX;     // ENTRY SIZE (NKEYS FOR EACH HINDEX)
-typedef HCC      HCCs[4];    // DEFAULT COUNTERS
-#define MAXACC_C (((uint64_t)1<<(sizeof(ACC)*8))-1)
-#define MAXHCC_C (((uint64_t)1<<(sizeof(HCC)*8))-1)
-#define MAXHCC_H 3
-#define MAXHSIZE (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
+typedef uint16_t    ACC;        // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
+typedef uint8_t     HCC;        // SIZE OF COUNTERS FOR HASH TABLE
+
+typedef uint16_t    ENTMAX;     // ENTRY SIZE (NKEYS FOR EACH HINDEX)
+typedef HCC         HCCs[4];    // DEFAULT HASH COUNTERS
+
+#define MAXACC_C    (((uint64_t)1<<(sizeof(ACC)*8))-1)
+#define MAXHCC_C    (((uint64_t)1<<(sizeof(HCC)*8))-1)
+#define MAXHCC_H    3
+#define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
+
+// HASH
+#define HSIZE       16777259 // 33554471  // NEXT PRIME AFTER 16777216 (24 BITS)
 
 typedef struct{       // ENTRY FOR 4 SYMBOLS
   uint16_t key;       // THE KEY (INDEX / HASHSIZE) STORED IN THIS ENTRY
@@ -61,8 +67,9 @@ typedef struct{
   uint8_t  rev;       // INVERSIONS USAGE
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
-  ARRAY    A;         // COUNTER-TABLE ARRAY
+  ARRAY    A;         // COUNTER-TABLE LINK
   HASH     H;         // HASH-TABLE LINK
+  BLOOM    *B;        // BLOOM-TABLE LINK
   }
 FCM;
 
@@ -75,8 +82,9 @@ typedef struct{
   uint32_t *freqs;    // FCM SYMBOL PROBABILITIES
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
-  ARRAY    A;         // COUNTER-TABLE ARRAY
-  GHASH    H;         // GENERAL HASH-TABLE LINK
+  ARRAY    A;         // COUNTER TABLE LINK
+  GHASH    H;         // HASH-TABLE LINK
+  BLOOM    *B;        // BLOOM TABLE LINK
   }
 GFCM;
 
@@ -121,8 +129,6 @@ SCORES;
 uint32_t    CalcAlphaDen    (uint8_t, uint32_t);
 uint32_t    CalcAlphaDenT   (uint8_t, uint32_t);
 uint32_t    AdjustContext   (uint8_t, uint32_t);
-void        Init4DnaHashTab (FCM *);
-void        InitGHashTab    (GFCM *);
 void        Reset4DnaModel  (FCM *);
 void        Free4DnaModel   (FCM *);
 void        FreeGModel      (GFCM *);

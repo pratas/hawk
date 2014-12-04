@@ -41,8 +41,8 @@
   "-S 3" 
 #define LEVEL_8                                           \
   "-H 3 "                                                 \
-  "-D 4 -D 9 -D 14 -D 20 "                                \
-  "-S 4"
+  "-D 4 -D 9 -D 13 "                                      \
+  "-S 3"
 #define LEVEL_9                                           \
   "-H 3 "                                                 \
   "-D 3 -D 5 -D 7 -D 9 -D 11 -D 13 -D 18 "                \
@@ -60,6 +60,7 @@ typedef struct{
   uint8_t filter;      // USE FILTER
   uint8_t inverse;     // USE INVERSIONS
   uint8_t adjust;      // ADJUST MODELS TO DATA [AFTER FAST ANALYSIS]
+  uint8_t mode;        // USE HASH OR BLOOM FOR DEEP CONTEXT MODELS
   }
 PARAM;
 

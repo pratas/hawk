@@ -65,6 +65,8 @@
 #include "args.h"
 #include "param.h"
 #include "dna.h"
+#include "hash.h"
+#include "bloom.h"
 #include "classes.h"
 #include "models.h"
 #include "info.h"
@@ -131,7 +133,7 @@ uint32_t BestInGun(uint32_t b[], uint32_t n){
 // COMPUTE SHOTGUN PROBABILITIES LOG
 //
 double CompGunProbs(uint32_t f[], uint32_t s){
-  return Log(f[4]/f[s]);
+  return log(f[4]/f[s]);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -554,8 +556,8 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
     }
 
   Msg(A, "==[ COMPRESSION ]============\n");
-  W = Fopen(cn, "w");
   fprintf(stderr, "[>] Compressing ...\n");
+  W = Fopen(cn, "w");
   startoutputtingbits();
   start_encode();
   EncodeParameters(C, A, W);
@@ -566,8 +568,8 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
       switch(line){
         case 0: 
         ///////////////////////////////////////////////////////////////////////
-          iHead = CompressStream(C->H.M[0], W, hea, iHead, C->H.A.numeric[s], 
-          C->H.A.nSym);
+          //iHead = CompressStream(C->H.M[0], W, hea, iHead, C->H.A.numeric[s], 
+          //C->H.A.nSym);
           if(s == '\n'){ line = 1; pos = 0; }
           
         ///////////////////////////////////////////////////////////////////////
@@ -587,21 +589,23 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
 
           for(m=0 ; m<C->D.nFCM ; ++m){
             GetIdx4Dna(dna+x-1, C->D.M[m]);
-            if(A->inverse == 1 && C->D.M[m]->mode == HASH_TABLE) 
+            if(A->inverse == 1 && C->D.M[m]->mode != ARRAY_TABLE) 
               GetIdx4DnaRev(dna+x, C->D.M[m]);
             ComputeGun(C->D.M[m], Gun->freqs[m][pos]);
             Gun->bits[m] += CompGunProbs(Gun->freqs[m][pos], n);
             if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
               Update4DnaFCM(C->D.M[m], n, 0);
-              if(C->D.M[m]->mode == HASH_TABLE)
+              if(A->inverse == 1 && C->D.M[m]->mode != ARRAY_TABLE)
                 Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
+
 /*            if(C->D->M[m]->mode == HASH_TABLE)
                 if(PeakMem() > 2147483648) {
                   fprintf(stderr, "Reseting DNA Hash model ...\n"); 
                   Reset4DnaModel(C->D.M[m]);
                   RestartPeak();
                   fprintf(stderr, "Done!\n");
-                  }            */
+                  } 
+*/
             }
 
           ++pos;
@@ -611,7 +615,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
         case 2: if(s == '\n') line = 3; break;
 
         case 3: 
-          iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], C->S.A.nSym);
+          //iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], C->S.A.nSym);
           if(s == '\n'){ 
 
           if(A->filter == 1)
@@ -620,6 +624,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
             if(C->D.nFCM != 1){
               iMod = CompressStream(Models, W, bufMod, iMod, best =
               BestInGun(Gun->bits, C->D.nFCM), C->D.nFCM);
+
               for(z = 0 ; z < pos ; ++z) AESym(Gun->sym[z], (int *)
                 Gun->freqs[best][z], (int) Gun->freqs[best][z][4], W);
               }
@@ -634,6 +639,11 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
         break;
         }
       }
+
+  #ifdef DEBUG
+  FILE *CNS = Fopen("cns.txt", "w");
+  PrintCBloom(C->D.M[C->D.nFCM-1]->B, CNS);
+  #endif
 
   finish_encode(W);
   doneoutputtingbits(W);
@@ -792,6 +802,7 @@ int main(int argc, char *argv[]){
     "  -l  <LEVEL>  compression level [1,...,9],                 \n" 
     "  -a           adjust context to data,                      \n" 
     "  -i           use inversions (DNA sequence only).          \n" 
+    "  -x           use hash instead of bloom (deep contexts).   \n" 
     "                                                            \n"
     "Mandatory compress arguments:                               \n"
     "                                                            \n"
@@ -829,6 +840,7 @@ int main(int argc, char *argv[]){
   A->filter  = ArgBin(DEF_FILTER,  p, argc, "-fn");
   A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
+  A->mode    = ArgBin(DEF_MODE,    p, argc, "-x");
 
   if(ArgBin(DEF_MODE, p, argc, "-d")) ActionD(A, argv[argc-1]);
   else{ ActionC(A, argv[argc-1]); }
