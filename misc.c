@@ -6,6 +6,24 @@
 #include "mem.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// REPLACE STRING
+//
+char *ReplaceSubStr(char *str, char *a, char *b){
+  char *buf = (char *) Calloc(MAX_STR, sizeof(char));
+  char *p;
+  if(strlen(str) > MAX_STR){
+    fprintf(stderr, "[x] Error: string too long!\n");
+    exit(1);
+    }
+  if(!(p = strstr(str, a))) 
+    return str;
+  strncpy(buf, str, p-str);
+  buf[p-str] = '\0';
+  sprintf(buf+(p-str), "%s%s", b, p+strlen(a));
+  return buf;
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // APPROXIMATE FUNCTION FOR LOG
 //
 uint32_t Log(uint64_t i){
@@ -25,7 +43,6 @@ uint32_t Log(uint64_t i){
 // APPROXIMATED POWER FUNCTION [A LOT FASTER] http://martin.ankerl.com/
 // 2007/10/04/optimized-pow-approximation-for-java-and-c-c/
 //
-#define MPW 1072632447
 double PW(double a, double b){
   int32_t t = (*(1+(int32_t *)&a)), u = (int32_t)(b*(t-MPW)+MPW);
   double p = 0;

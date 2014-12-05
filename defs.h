@@ -31,7 +31,7 @@ uint64_t garbage;
 #define MFILENM     256
 #define BIN_LINE    512
 #define DEF_HELP    0
-#define DEF_MODE    0
+#define DEF_MODE    1     // DEFAULT = HASH MODE
 #define DEF_VERBOSE 0
 #define DEF_PARAM   0
 #define DEF_FILTER  1

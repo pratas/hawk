@@ -22,7 +22,7 @@ typedef HCC         HCCs[4];    // DEFAULT HASH COUNTERS
 #define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
 
 // HASH
-#define HSIZE       16777259 // 33554471  // NEXT PRIME AFTER 16777216 (24 BITS)
+#define HSIZE       33554471 //16777259 // USE HIGHER VALUE HIGHER THAN 24 BITS
 
 typedef struct{       // ENTRY FOR 4 SYMBOLS
   uint16_t key;       // THE KEY (INDEX / HASHSIZE) STORED IN THIS ENTRY

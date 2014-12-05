@@ -531,7 +531,6 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   GFCM *Entropy = NULL, *Models = NULL;
   uint32_t iHead = 0, iSco = 0, iEnt = 0, iMod = 0;
   uint8_t *bufEnt = NULL, *bufMod = NULL;
-  
 
   buf = (uint8_t *) Calloc(BUF_SIZE,       sizeof(uint8_t));
   hea = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
@@ -702,8 +701,6 @@ void ActionC(PARAM *A, char *fn){
   C->length = b;
   ParseFile(C, F, A);
 
-PrintCurrMem();
-
   // IF nFCM = 1 IT USES THE FILTER, HOWEVER ONLY IN CREATEMODELS THE nFCM IS
   // LOADED. PERHAPS, FIX THIS WITH PRE-LOAD PARAMETERS.
   // TODO: IF nFCM(FROM PARAMETERS) < 2 THEN A->filter = 0 
@@ -736,8 +733,6 @@ PrintCurrMem();
     Free(nmr, MFILENM * sizeof(char));
     }
 
-PrintCurrMem();
-
   RestartPeak();      // RESTART MEMORY PEAK [IT WILL IGNORE THE FILTERING PART]
   CreateModels(C, p, F, A);      // CREATE ALL FCM MODELS [FOR COMPRESSION MODE] 
 
@@ -748,8 +743,6 @@ PrintCurrMem();
     fprintf(stderr, "[x] Error: too many models!\n"); exit(1);
     }
 
-PrintCurrMem();
-
   // HEADERS, DNA SEQUENCE AND QUALITY-SCORES COMPRESSION
   Compress(C, A, F, fn, cn);
 
@@ -758,9 +751,7 @@ PrintCurrMem();
   FreeAlphabets(C);
   FreeClasses(C);
   Free(cn, MFILENM * sizeof(char));
-
   PrintRAM();
-
   fclose(F);
   }
 
@@ -769,12 +760,17 @@ PrintCurrMem();
 //
 void ActionD(PARAM *A, char *fn){
   FILE    *F = Fopen(fn, "r");
-  uint64_t b = FNBytes(F);
-  //DecodeHeader(F);
+  char    *dn = ReplaceSubStr(fn, ".hawk", ".d");
+  CheckFile(A->force, dn);
+
   CLASSES *C = InitClasses();
-  C->length = b;
-  //CreateModels(C, p, F, A);
   Uncompress(C, A);
+  //DecodeHeader(F);
+  //CreateModels(C, p, F, A);
+
+  FreeClasses(C); 
+  Free(dn, MAX_STR * sizeof(char));
+  fclose(F);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -802,7 +798,7 @@ int main(int argc, char *argv[]){
     "  -l  <LEVEL>  compression level [1,...,9],                 \n" 
     "  -a           adjust context to data,                      \n" 
     "  -i           use inversions (DNA sequence only).          \n" 
-    "  -x           use hash instead of bloom (deep contexts).   \n" 
+    "  -b           use bloom instead of hash (deep contexts).   \n" 
     "                                                            \n"
     "Mandatory compress arguments:                               \n"
     "                                                            \n"
@@ -840,7 +836,7 @@ int main(int argc, char *argv[]){
   A->filter  = ArgBin(DEF_FILTER,  p, argc, "-fn");
   A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
-  A->mode    = ArgBin(DEF_MODE,    p, argc, "-x");
+  A->mode    = ArgBin(DEF_MODE,    p, argc, "-b");
 
   if(ArgBin(DEF_MODE, p, argc, "-d")) ActionD(A, argv[argc-1]);
   else{ ActionC(A, argv[argc-1]); }
