@@ -838,7 +838,7 @@ int main(int argc, char *argv[]){
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
   A->mode    = ArgBin(DEF_MODE,    p, argc, "-b");
 
-  if(ArgBin(DEF_MODE, p, argc, "-d")) ActionD(A, argv[argc-1]);
+  if(ArgBin(DEF_ACTION, p, argc, "-d")) ActionD(A, argv[argc-1]);
   else{ ActionC(A, argv[argc-1]); }
 
   Free(A, sizeof(PARAM));
