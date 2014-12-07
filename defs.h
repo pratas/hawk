@@ -59,6 +59,9 @@ uint64_t garbage;
 #define MAX_F_CTX   18
 #define DEF_FL_CTX  4
 #define DEF_FH_CTX  13
+#define MIN_MEM     1024
+#define MAX_MEM     131072
+#define DEF_MEM     5120
 #define HIGH_CTXBG  13 
 #define SCACHE      32
 #define MIN_LEVEL   0

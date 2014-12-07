@@ -8,7 +8,7 @@ LIBS   = -lm
 DEPS   = defs.h
 PROGS  = $(BIN)/Hawk
 OBJS   = mem.o misc.o args.o param.o dna.o hash.o bloom.o classes.o models.o \
-         info.o bitio.o arith.o arith_aux.o
+         info.o gun.o bitio.o arith.o arith_aux.o
 #-----------------------------------------------------------------------------
 all:
 	$(MAKE) progs
@@ -35,6 +35,8 @@ models.o: models.c models.h $(DEPS)
 	$(CC) -c $(CFLAGS) models.c
 info.o: info.c info.h $(DEPS)
 	$(CC) -c $(CFLAGS) info.c
+gun.o: gun.c gun.h $(DEPS)
+	$(CC) -c $(CFLAGS) gun.c
 bitio.o: bitio.c bitio.h $(DEPS)
 	$(CC) -c $(CFLAGS) bitio.c
 arith.o: arith.c arith.h $(DEPS)

@@ -30,26 +30,12 @@ typedef struct{       // ENTRY FOR 4 SYMBOLS
   }
 ENTRY;
 
-typedef struct{       // ENTRY FOR MULTIPLE FILES
-  uint32_t key;       // THE KEY (INDEX / HASHSIZE) STORED IN THIS ENTRY
-  HCC      *cnts;     // COUNTERS
-  }
-GENTRY;
-
 typedef struct{       // HASH FOR 4 SYMBOLS
   ENTMAX   *size;     // NUMBER OF KEYS FOR EACH ENTRY
   ENTRY    **ent;     // THE HEADS OF THE HASH TABLE LISTS
   HCCs     **cnts;    // THE CONTEXT COUNTERS
   }
 HASH;
-
-typedef struct{       // HASH FOR MULTIPLE SYMBOLS
-  ENTMAX   *size;     // NUMBER OF KEYS FOR EACH ENTRY
-  GENTRY   **ent;     // THE HEADS OF THE HASH TABLE LISTS
-  HCCs     **cnts;    // THE CONTEXT COUNTERS
-  uint64_t sum;       // TOTAL NUMBER OF CNTS
-  }
-GHASH;
 
 typedef struct{
   ACC      *cnts;     // TABLE COUNTERS
@@ -83,7 +69,6 @@ typedef struct{
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
   ARRAY    A;         // COUNTER TABLE LINK
-  GHASH    H;         // HASH-TABLE LINK
   BLOOM    *B;        // BLOOM TABLE LINK
   }
 GFCM;

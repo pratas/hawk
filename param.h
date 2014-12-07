@@ -52,15 +52,16 @@
 // BASIC INPUT PARAMETERS
 //
 typedef struct{
-  uint8_t verbose;     // GIVES MORE INFORMATION
-  uint8_t force;       // FORCE REWRITE OVER FILES
-  uint8_t level;       // COMPRESSION LEVEL
-  uint8_t fLow;        // LOWER CONTEXT ORDER FOR FILTER 
-  uint8_t fHigh;       // HIGH CONTEXT ORDER FOR FILTER
-  uint8_t filter;      // USE FILTER
-  uint8_t inverse;     // USE INVERSIONS
-  uint8_t adjust;      // ADJUST MODELS TO DATA [AFTER FAST ANALYSIS]
-  uint8_t mode;        // USE HASH OR BLOOM FOR DEEP CONTEXT MODELS
+  uint8_t  verbose;     // GIVES MORE INFORMATION
+  uint8_t  force;       // FORCE REWRITE OVER FILES
+  uint8_t  level;       // COMPRESSION LEVEL
+  uint8_t  fLow;        // LOWER CONTEXT ORDER FOR FILTER 
+  uint8_t  fHigh;       // HIGH CONTEXT ORDER FOR FILTER
+  uint8_t  filter;      // USE FILTER
+  uint8_t  inverse;     // USE INVERSIONS
+  uint8_t  adjust;      // ADJUST MODELS TO DATA [AFTER FAST ANALYSIS]
+  uint8_t  mode;        // USE HASH OR BLOOM FOR DEEP CONTEXT MODELS
+  uint64_t memory;      // MAX MEMORY FOR HASH MODEL
   }
 PARAM;
 

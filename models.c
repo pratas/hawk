@@ -11,7 +11,6 @@
 uint32_t CalcAlphaDen(uint8_t n, uint32_t c){
   uint64_t x = (uint64_t) PW(n, c);
   return x<268435456?1:x<4294967297?1:x<274877906944?50:100;
-//  return 1;
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -50,15 +49,6 @@ static void Init4DnaHashTab(FCM *M){
   M->H.size = (ENTMAX *) Calloc(HSIZE, sizeof(ENTMAX ));
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// INITIALIZE GENERAL HASH TABLE
-// 
-/*static void InitGHashTab(GFCM *M){
-  M->H.ent  = (GENTRY **) Calloc(HSIZE, sizeof(GENTRY *));
-  M->H.cnts = (HCCs   **) Calloc(HSIZE, sizeof(HCCs   *));
-  M->H.size = (ENTMAX  *) Calloc(HSIZE, sizeof(ENTMAX  ));
-  }
-*/
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // INITIALIZE 4 SYMBOL ARRAY TABLE
 //
@@ -246,12 +236,11 @@ void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
 //
 void UpdateGFCM(GFCM *M, uint32_t c){
   ACC *ac;
-  uint32_t n;
-  if(M->mode == HASH_TABLE){
-    fprintf(stderr, "[x] Error: currently not implemented!\n");
-    exit(1);
+  if(M->mode == BLOOM_TABLE){
+    UpdateBloom(M->B, M->idx, c);
     }
   else{
+    uint32_t n;
     ac = &M->A.cnts[M->idx*M->nSym];
     if(++ac[c] == MAXACC_C){ 
       for(n = 0 ; n < M->nSym ; ++n)
@@ -313,13 +302,14 @@ GFCM *CreateGFCM(uint32_t c, uint32_t a, uint8_t n, PARAM *A){
   M->freqs  = (uint32_t *) Calloc(M->nSym+1, sizeof(uint32_t));
   M->nPMod  = (uint64_t) pow(n,c);
 
-  if(M->nPMod > DEEP_CTX){
-    fprintf(stderr, "[x] Error: this model only supports simple tables\n");
-    exit(1);
+  if(M->nPMod < DEEP_CTX){
+    InitGArrayTab(M); 
+    M->mode = 0;
     }
-
-  InitGArrayTab(M); 
-  M->mode = 0;
+  else{
+    M->B = CreateBloom(N_HASH_FUNC, BLOOM_SIZE, M->nSym);
+    M->mode = 1;
+    }
 
   if(A->verbose == 1){
     fprintf(stderr, "  [+] mode .................. %s\n", M->mode == 0 ?
@@ -362,7 +352,6 @@ inline void ComputeGun(FCM *M, uint32_t *f){
       b = SearchBloom(M->B, M->idx);
       f[0] = 1+M->aDen*b[0]; f[1] = 1+M->aDen*b[1];
       f[2] = 1+M->aDen*b[2]; f[3] = 1+M->aDen*b[3];
-//      printf("%u %u %u %u\n", f[0], f[1], f[2], f[3]);
     break;
     case HASH_TABLE:
       if(!(h = Get4DnaHCCnts(&M->H, M->idx))) h = hzeroCnts;
