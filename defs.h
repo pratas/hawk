@@ -39,6 +39,7 @@ uint64_t garbage;
 #define DEF_LEVEL   5
 #define DEF_MODE    1     // DEFAULT = HASH MODE
 #define DEF_INVERSE 0
+#define DEF_REVERSE 0
 #define DEF_ADJUST  0
 #define DEF_VERSION 0
 #define DEF_ENT_CTX 5

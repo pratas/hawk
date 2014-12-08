@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gun.h"
+#include "misc.h"
 #include "mem.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,7 +42,7 @@ void DeleteShotgun(SHOTGUN *G, uint32_t m, uint32_t l, uint32_t s){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // CALCULATE THE BEST IN GUN
 //
-uint32_t BestInGun(uint32_t b[], uint32_t n){
+uint32_t BestInGun(uint32_t *b, uint32_t n){
   uint32_t x, min = b[0], i = 0;
   for(x = 1 ; x < n ; ++x){
     if(min > b[x]){
@@ -51,6 +52,13 @@ uint32_t BestInGun(uint32_t b[], uint32_t n){
     b[x] = 0;
     }
   return i;
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// COMPUTE SHOTGUN PROBABILITIES LOG
+//
+uint32_t CompGunProbs(uint32_t *f, uint32_t s){
+  return Log(f[4]/f[s]);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

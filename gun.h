@@ -17,7 +17,8 @@ SHOTGUN;
 
 SHOTGUN   *CreateShotgun  (uint32_t, uint32_t, uint32_t);
 void      DeleteShotgun   (SHOTGUN *, uint32_t, uint32_t, uint32_t);
-uint32_t  BestInGun       (uint32_t [], uint32_t);
+uint32_t  BestInGun       (uint32_t *, uint32_t);
+uint32_t  CompGunProbs    (uint32_t *, uint32_t);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

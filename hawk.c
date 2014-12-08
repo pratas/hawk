@@ -76,13 +76,6 @@
 #include "arith_aux.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// COMPUTE SHOTGUN PROBABILITIES LOG
-//
-double CompGunProbs(uint32_t f[], uint32_t s){
-  return log(f[4]/f[s]);
-  }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // INITIALIZE AND FREE ALPHABETS
 //
 void InitAlphabets(CLASSES *C){
@@ -534,14 +527,17 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
 
           for(m=0 ; m<C->D.nFCM ; ++m){
             GetIdx4Dna(dna+x-1, C->D.M[m]);
-            if(A->inverse == 1 && C->D.M[m]->mode != ARRAY_TABLE) 
+            if((A->inverse == 1 || A->reverse == 1) 
+                                /*&& C->D.M[m]->mode != ARRAY_TABLE*/) 
               GetIdx4DnaRev(dna+x, C->D.M[m]);
             ComputeGun(C->D.M[m], Gun->freqs[m][pos]);
             Gun->bits[m] += CompGunProbs(Gun->freqs[m][pos], n);
             if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
               Update4DnaFCM(C->D.M[m], n, 0);
-              if(A->inverse == 1 && C->D.M[m]->mode != ARRAY_TABLE)
+              if(A->inverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
                 Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
+              if(A->reverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
+                Update4DnaFCM(C->D.M[m], dna[x-C->D.M[m]->ctx], 1);
 
             if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
               fprintf(stderr, "Reseting DNA Hash model ...\n"); 
@@ -780,6 +776,7 @@ int main(int argc, char *argv[]){
   A->fHigh   = ArgNum(DEF_FH_CTX,  p, argc, "-fh", MIN_F_CTX, MAX_F_CTX);
   A->filter  = ArgBin(DEF_FILTER,  p, argc, "-fn");
   A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
+  A->reverse = ArgBin(DEF_REVERSE, p, argc, "-r");
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
   A->mode    = ArgBin(DEF_MODE,    p, argc, "-b");
   A->memory  = (uint64_t) ArgNum(DEF_FH_CTX,  p, argc, "-m", MIN_MEM, MAX_MEM) *

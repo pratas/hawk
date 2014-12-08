@@ -388,10 +388,10 @@ void ComputeGFCM(GFCM *M){
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// COMPUTE DOUBLE PROBABILITIES
+// COMPUTE PROBABILITIES
 //
-double CompProbs(FCM *M, uint32_t s){
-  return Log((double)M->freqs[M->nSym]/M->freqs[s]);
+uint32_t CompProbs(FCM *M, uint32_t s){
+  return Log(M->freqs[M->nSym]/M->freqs[s]);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

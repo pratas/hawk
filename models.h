@@ -123,7 +123,7 @@ FCM         *Create4DnaFCM  (uint32_t, uint32_t, uint8_t, uint8_t, PARAM *);
 GFCM        *CreateGFCM     (uint32_t, uint32_t, uint8_t, PARAM *);
 inline void Compute4DnaFCM  (FCM *);
 inline void ComputeGun      (FCM *, uint32_t *);
-double      CompProbs       (FCM *, uint32_t);
+uint32_t    CompProbs       (FCM *, uint32_t);
 void        ComputeGFCM     (GFCM *);
 inline void GetIdx4DnaRev   (uint8_t *, FCM *);
 inline void GetIdx4Dna      (uint8_t *, FCM *);
