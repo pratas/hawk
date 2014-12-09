@@ -542,7 +542,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
             if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
               fprintf(stderr, "Reseting DNA Hash model ...\n"); 
               Reset4DnaModel(C->D.M[m]);
-              RestartPeak();
+              RestartPeakAndRS();
               fprintf(stderr, "Done!\n");
               }
             }
@@ -691,7 +691,7 @@ void ActionC(PARAM *A, char *fn){
   FreeAlphabets(C);
   FreeClasses(C);
   Free(cn, MFILENM * sizeof(char));
-  PrintRAM();
+  PrintRAM(A->memory);
   fclose(F);
   }
 
@@ -779,7 +779,7 @@ int main(int argc, char *argv[]){
   A->reverse = ArgBin(DEF_REVERSE, p, argc, "-r");
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
   A->mode    = ArgBin(DEF_MODE,    p, argc, "-b");
-  A->memory  = (uint64_t) ArgNum(DEF_FH_CTX,  p, argc, "-m", MIN_MEM, MAX_MEM) *
+  A->memory  = (uint64_t) ArgNum(DEF_MEM,  p, argc, "-m", MIN_MEM, MAX_MEM) *
                1048576;
 
   if(ArgBin(DEF_ACTION, p, argc, "-d")) ActionD(A, argv[argc-1]);

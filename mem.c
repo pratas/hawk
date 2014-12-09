@@ -4,13 +4,14 @@
 #include "mem.h"
 #include "defs.h"
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // MEMORY VARIABLES
 //
 static size_t CM = 0; // CURRENT HEAP MEMORY
 static size_t PM = 0; // PEAK HEAP MEMORY
+static size_t RS = 0; // RESET HAS BEEN DONE
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // WARN ERROR AND QUIT
 //
 static void ErrorQuit(size_t s){
@@ -18,7 +19,7 @@ static void ErrorQuit(size_t s){
   exit(1);
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // MALLOC AND INCREMENT MEMORY TRACK
 //
 void *Malloc(size_t s){
@@ -29,7 +30,7 @@ void *Malloc(size_t s){
   return p;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // CALLOC AND INCREMENT MEMORY TRACK
 //
 void *Calloc(size_t n, size_t s){
@@ -40,7 +41,7 @@ void *Calloc(size_t n, size_t s){
   return p;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // REALLOC AND INCREMENT MEMORY TRACK
 //
 void *Realloc(void *r, size_t s, size_t a){
@@ -51,7 +52,7 @@ void *Realloc(void *r, size_t s, size_t a){
   return p;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // FREE POINTER AND DECREMENT MEMORY VALUE
 //
 void Free(void *p, size_t s){
@@ -59,32 +60,40 @@ void Free(void *p, size_t s){
   free(p);
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // REMOVE A PIECE OF FREED MEMORY WITH S = 0
 // 
 void RemovePiece(size_t s){
   CM -= s;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // RETURN CURRENT MEMORY USAGE
 //
 size_t CurrMem(void){
   return CM;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // RETURN PEAK MEMORY USAGE
 //
 size_t PeakMem(void){
   return PM;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // RESTART PEAK MEMORY USAGE USING THE CURRENT MEMORY VALUE
 //
 void RestartPeak(void){
   PM = CM;
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// RESTART PEAK MEMORY USAGE USING THE CURRENT MEMORY VALUE AND SET RS USED (1)
+//
+void RestartPeakAndRS(void){
+  PM = CM;
+  RS = 1;
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -102,7 +111,7 @@ void PrintHRBytes(int64_t b){
     }
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // PRINT CUMULATIVE MEMORY
 //
 void PrintCurrMem(void){
@@ -111,13 +120,13 @@ void PrintCurrMem(void){
   fprintf(stderr, "\n");
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // PRINT MAXIMUM PEAK MEMORY
 //
-void PrintRAM(void){
+void PrintRAM(int64_t b){
   fprintf(stderr, "[i] Minimum RAM to uncompress the file: ");
-  PrintHRBytes(PeakMem()); 
+  if(RS == 0) PrintHRBytes(PeakMem()); else PrintHRBytes(b);
   fprintf(stderr, "\n");
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
