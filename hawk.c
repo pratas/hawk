@@ -526,26 +526,33 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
           Gun->sym[pos] = n;
 
           for(m=0 ; m<C->D.nFCM ; ++m){
+   
             GetIdx4Dna(dna+x-1, C->D.M[m]);
+            if(A->inverse == 1) GetIdx4DnaRev(dna+x, C->D.M[m]);
+            #ifdef REVERSE 
+            if(A->reverse == 1) GetIdx4DnaRev(dna+x, C->D.M[m]);
+            #endif
 
-            if((A->inverse == 1 || A->reverse == 1) 
-                                /*&& C->D.M[m]->mode != ARRAY_TABLE*/) 
-              GetIdx4DnaRev(dna+x, C->D.M[m]);
             ComputeGun(C->D.M[m], Gun->freqs[m][pos]);
             Gun->bits[m] += CompGunProbs(Gun->freqs[m][pos], n);
+
             if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
               Update4DnaFCM(C->D.M[m], n, 0);
-            if(A->inverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
+            if(A->inverse == 1)
               Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
-            if(A->reverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
+            #ifdef REVERSE
+            if(A->reverse == 1)
               Update4DnaFCM(C->D.M[m], dna[x-C->D.M[m]->ctx], 1);
+            #endif
 
+            #ifdef MEMORY
             if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
               fprintf(stderr, "Reseting DNA Hash model ...\n"); 
               Reset4DnaModel(C->D.M[m]);
               RestartPeakAndRS();
               fprintf(stderr, "Done!\n");
               }
+            #endif
             }
 
           ++pos;
@@ -555,7 +562,9 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
         case 2: if(s == '\n') line = 3; break;
 
         case 3: 
-          iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], C->S.A.nSym);
+          iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], 
+                 C->S.A.nSym);
+
           if(s == '\n'){ 
             if(A->filter == 1)
               iEnt = CompressStream(Entropy, W, bufEnt, iEnt, C->D.bica[r], 2);
@@ -683,7 +692,9 @@ void ActionC(PARAM *A, char *fn){
   FreeAlphabets(C);
   FreeClasses(C);
   Free(cn, MFILENM * sizeof(char));
+  #ifdef MEMORY
   PrintRAM(A->memory);
+  #endif
   fclose(F);
   }
 
@@ -730,8 +741,13 @@ int main(int argc, char *argv[]){
     "  -l  <LEVEL>   compression level [1,...,9],                   \n" 
     "  -a            adjust context to data,                        \n" 
     "  -i            use inversions (DNA sequence only),            \n" 
-    "  -c            use CCH instead of hash (deepest contexts),    \n" 
+    #ifdef REVERSE
+    "  -r            use reversions (DNA sequence only),            \n" 
+    #endif
+    #ifdef MEMORY
     "  -m  <MEMORY>  maximum hash memory for deepest model (in MB). \n" 
+    #endif
+    "  -c            use CCH instead of hash (deepest contexts).    \n" 
     "                                                               \n"
     "Mandatory compress arguments:                                  \n"
     "                                                               \n"
@@ -768,11 +784,15 @@ int main(int argc, char *argv[]){
   A->fHigh   = ArgNum(DEF_FH_CTX,  p, argc, "-fh", MIN_F_CTX, MAX_F_CTX);
   A->filter  = ArgBin(DEF_FILTER,  p, argc, "-fn");
   A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
+  #ifdef REVERSE
   A->reverse = ArgBin(DEF_REVERSE, p, argc, "-r");
+  #endif
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
   A->mode    = ArgBin(DEF_MODE,    p, argc, "-c");
+  #ifdef MEMORY
   A->memory  = (uint64_t) ArgNum(DEF_MEM,  p, argc, "-m", MIN_MEM, MAX_MEM) *
                1048576;
+  #endif
 
   if(ArgBin(DEF_ACTION, p, argc, "-d")) ActionD(A, argv[argc-1]);
   else{ ActionC(A, argv[argc-1]); }

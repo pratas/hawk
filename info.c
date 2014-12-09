@@ -14,9 +14,15 @@ void EncodeParameters(CLASSES *C, PARAM *A, FILE *W){
   WriteNBits(RELEASE,               8, W);
   WriteNBits(YEAR,                 12, W);
   //
-  // BASIC READS INFORMATION
+  // BASIC READS INFORMATION & PARAMETERS
   WriteNBits(C->length,            64, W);
   WriteNBits(C->nReads,            64, W);
+  #ifdef REVERSE
+  WriteNBits(A->reverse,            1, W);
+  #endif
+  #ifdef MEMORY
+  WriteNBits(A->memory,            32, W);
+  #endif
   //
   // HEADER:
   WriteNBits(C->H.nFCM,             8, W);

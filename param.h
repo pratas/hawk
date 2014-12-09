@@ -59,10 +59,14 @@ typedef struct{
   uint8_t  fHigh;       // HIGH CONTEXT ORDER FOR FILTER
   uint8_t  filter;      // USE FILTER
   uint8_t  inverse;     // USE INVERSIONS (REVERSE AND COMPLEMENT)
+  #ifdef REVERSE
   uint8_t  reverse;     // USE REVERSIONS
+  #endif
   uint8_t  adjust;      // ADJUST MODELS TO DATA [AFTER FAST ANALYSIS]
   uint8_t  mode;        // USE HASH OR BLOOM FOR DEEP CONTEXT MODELS
+  #ifdef MEMORY
   uint64_t memory;      // MAX MEMORY FOR HASH MODEL
+  #endif
   }
 PARAM;
 
