@@ -506,8 +506,8 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
       switch(line){
         case 0: 
         ///////////////////////////////////////////////////////////////////////
-          //iHead = CompressStream(C->H.M[0], W, hea, iHead, C->H.A.numeric[s], 
-          //C->H.A.nSym);
+          iHead = CompressStream(C->H.M[0], W, hea, iHead, C->H.A.numeric[s], 
+          C->H.A.nSym);
           if(s == '\n'){ line = 1; pos = 0; }
           
         ///////////////////////////////////////////////////////////////////////
@@ -555,16 +555,13 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
         case 2: if(s == '\n') line = 3; break;
 
         case 3: 
-          //iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], C->S.A.nSym);
+          iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], C->S.A.nSym);
           if(s == '\n'){ 
-
-          if(A->filter == 1)
+            if(A->filter == 1)
               iEnt = CompressStream(Entropy, W, bufEnt, iEnt, C->D.bica[r], 2);
-
             if(C->D.nFCM != 1){
               iMod = CompressStream(Models, W, bufMod, iMod, best =
               BestInGun(Gun->bits, C->D.nFCM), C->D.nFCM);
-
               for(z = 0 ; z < pos ; ++z) AESym(Gun->sym[z], (int *)
                 Gun->freqs[best][z], (int) Gun->freqs[best][z][4], W);
               }
@@ -596,7 +593,6 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
     Free(bufMod-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t));
     FreeGModel(Models);
     }
-  //if(Extra == 1)     FreeGModel(Extra);
 
   fprintf(stderr, "[>] Done!                           \n"); // SPACES ARE VALID 
   fprintf(stderr, "[i] Compressed %"PRIu64" bases using %llu bytes (%.3g)\n", 
