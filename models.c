@@ -79,9 +79,9 @@ static void Insert4DnaKey(HASH *T, uint32_t h, uint64_t i){
 void Reset4DnaModel(FCM *M){
   uint32_t k;
   switch(M->mode){
-    case BLOOM_TABLE:
-      DeleteBloom(M->B);
-      M->B = CreateBloom(N_HASH_FUNC, BLOOM_SIZE, M->nSym);
+    case CCH_TABLE:
+      DeleteCCH(M->B);
+      M->B = CreateCCH(CCH_SIZE, M->nSym);
     break;
     case HASH_TABLE:
       for(k = 0 ; k < HSIZE ; ++k){
@@ -107,8 +107,8 @@ void Reset4DnaModel(FCM *M){
 void Free4DnaModel(FCM *M){
   uint32_t k;
   switch(M->mode){
-    case BLOOM_TABLE:
-      DeleteBloom(M->B);
+    case CCH_TABLE:
+      DeleteCCH(M->B);
     break;
     case HASH_TABLE:
       for(k = 0 ; k < HSIZE ; ++k){
@@ -132,8 +132,8 @@ void Free4DnaModel(FCM *M){
 //
 void FreeGModel(GFCM *M){
   switch(M->mode){
-    case BLOOM_TABLE:
-      DeleteBloom(M->B);
+    case CCH_TABLE:
+      DeleteCCH(M->B);
     break;
     case HASH_TABLE:
       fprintf(stderr, "[x] Error: currently not implemented!\n");
@@ -189,8 +189,8 @@ void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
   ACC *ac;
   uint32_t n;
   uint64_t idx = (ir == 0) ? M->idx : M->idxRev;
-  if(M->mode == BLOOM_TABLE){
-    UpdateBloom(M->B, idx, c);
+  if(M->mode == CCH_TABLE){
+    UpdateCCH(M->B, idx, c);
     }
   else if(M->mode == HASH_TABLE){
     uint8_t s;
@@ -236,8 +236,8 @@ void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
 //
 void UpdateGFCM(GFCM *M, uint32_t c){
   ACC *ac;
-  if(M->mode == BLOOM_TABLE){
-    UpdateBloom(M->B, M->idx, c);
+  if(M->mode == CCH_TABLE){
+    UpdateCCH(M->B, M->idx, c);
     }
   else{
     uint32_t n;
@@ -270,7 +270,7 @@ FCM *Create4DnaFCM(uint32_t c, uint32_t a, uint8_t i, uint8_t n, PARAM *A){
     }
   else{
     if(A->mode == 0){
-      M->B = CreateBloom(N_HASH_FUNC, BLOOM_SIZE, M->nSym);
+      M->B = CreateCCH(CCH_SIZE, M->nSym);
       M->mode = 1;
       }
     else{
@@ -281,7 +281,7 @@ FCM *Create4DnaFCM(uint32_t c, uint32_t a, uint8_t i, uint8_t n, PARAM *A){
 
   if(A->verbose == 1){
     fprintf(stderr, "  [+] mode .................. %s\n", M->mode == 0 ? 
-    "Counter-table" : (A->mode == 0 ? "Bloom-table" : "Hash-table"));
+    "Counter-table":(A->mode==0?"Counter Coast Hash-table":"Hash-table"));
     fprintf(stderr, "  [+] context ............... %u\n", c);
     fprintf(stderr, "  [+] alpha ................. %.3g\n", 1.0/a);
     if(i == 1) fprintf(stderr, "  [+] using inversions ...... yes\n");
@@ -307,13 +307,13 @@ GFCM *CreateGFCM(uint32_t c, uint32_t a, uint8_t n, PARAM *A){
     M->mode = 0;
     }
   else{
-    M->B = CreateBloom(N_HASH_FUNC, BLOOM_SIZE, M->nSym);
+    M->B = CreateCCH(CCH_SIZE, M->nSym);
     M->mode = 1;
     }
 
   if(A->verbose == 1){
     fprintf(stderr, "  [+] mode .................. %s\n", M->mode == 0 ?
-    "Counter-table" : "Bloom-table");
+    "Counter-table" : "Counter Coast Hash-table");
     fprintf(stderr, "  [+] context ............... %u\n", c);
     fprintf(stderr, "  [+] alpha ................. %.3g\n", 1.0/a);
     }
@@ -326,7 +326,6 @@ GFCM *CreateGFCM(uint32_t c, uint32_t a, uint8_t n, PARAM *A){
 inline void Compute4DnaFCM(FCM *M){
   HCC *h;
   ACC *a;
-  
   if(M->mode == HASH_TABLE){
     if(!(h = Get4DnaHCCnts(&M->H, M->idx))) h = hzeroCnts;
     M->freqs[0] = 1+M->aDen*h[0]; M->freqs[1] = 1+M->aDen*h[1];
@@ -344,14 +343,14 @@ inline void Compute4DnaFCM(FCM *M){
 // COMPUTE SPECIFIC 4 SYMBOL FCM PROBABILITIES
 //
 inline void ComputeGun(FCM *M, uint32_t *f){
-  HCC *h;
-  BCC *b;
-  ACC *a;
+  HCC   *h;
+  C_CCH *c;
+  ACC   *a;
   switch(M->mode){
-    case BLOOM_TABLE:
-      b = SearchBloom(M->B, M->idx);
-      f[0] = 1+M->aDen*b[0]; f[1] = 1+M->aDen*b[1];
-      f[2] = 1+M->aDen*b[2]; f[3] = 1+M->aDen*b[3];
+    case CCH_TABLE:
+      c = SearchCCH(M->B, M->idx);
+      f[0] = 1+M->aDen*c[0]; f[1] = 1+M->aDen*c[1];
+      f[2] = 1+M->aDen*c[2]; f[3] = 1+M->aDen*c[3];
     break;
     case HASH_TABLE:
       if(!(h = Get4DnaHCCnts(&M->H, M->idx))) h = hzeroCnts;

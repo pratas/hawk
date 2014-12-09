@@ -66,7 +66,7 @@
 #include "param.h"
 #include "dna.h"
 #include "hash.h"
-#include "bloom.h"
+#include "cch.h"
 #include "classes.h"
 #include "models.h"
 #include "gun.h"
@@ -527,6 +527,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
 
           for(m=0 ; m<C->D.nFCM ; ++m){
             GetIdx4Dna(dna+x-1, C->D.M[m]);
+
             if((A->inverse == 1 || A->reverse == 1) 
                                 /*&& C->D.M[m]->mode != ARRAY_TABLE*/) 
               GetIdx4DnaRev(dna+x, C->D.M[m]);
@@ -534,10 +535,10 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
             Gun->bits[m] += CompGunProbs(Gun->freqs[m][pos], n);
             if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
               Update4DnaFCM(C->D.M[m], n, 0);
-              if(A->inverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
-                Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
-              if(A->reverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
-                Update4DnaFCM(C->D.M[m], dna[x-C->D.M[m]->ctx], 1);
+            if(A->inverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
+              Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
+            if(A->reverse == 1/* && C->D.M[m]->mode != ARRAY_TABLE*/)
+              Update4DnaFCM(C->D.M[m], dna[x-C->D.M[m]->ctx], 1);
 
             if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
               fprintf(stderr, "Reseting DNA Hash model ...\n"); 
@@ -578,11 +579,6 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
         break;
         }
       }
-
-  #ifdef DEBUG
-  FILE *CNS = Fopen("cns.txt", "w");
-  PrintCBloom(C->D.M[C->D.nFCM-1]->B, CNS);
-  #endif
 
   finish_encode(W);
   doneoutputtingbits(W);
@@ -738,7 +734,7 @@ int main(int argc, char *argv[]){
     "  -l  <LEVEL>   compression level [1,...,9],                   \n" 
     "  -a            adjust context to data,                        \n" 
     "  -i            use inversions (DNA sequence only),            \n" 
-    "  -b            use bloom instead of hash (deepest contexts),  \n" 
+    "  -c            use CCH instead of hash (deepest contexts),    \n" 
     "  -m  <MEMORY>  maximum hash memory for deepest model (in MB). \n" 
     "                                                               \n"
     "Mandatory compress arguments:                                  \n"
@@ -778,7 +774,7 @@ int main(int argc, char *argv[]){
   A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
   A->reverse = ArgBin(DEF_REVERSE, p, argc, "-r");
   A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
-  A->mode    = ArgBin(DEF_MODE,    p, argc, "-b");
+  A->mode    = ArgBin(DEF_MODE,    p, argc, "-c");
   A->memory  = (uint64_t) ArgNum(DEF_MEM,  p, argc, "-m", MIN_MEM, MAX_MEM) *
                1048576;
 

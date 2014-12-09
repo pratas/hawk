@@ -68,7 +68,7 @@ uint64_t garbage;
 #define MIN_LEVEL   0
 #define MAX_LEVEL   9
 #define HASH_TABLE  2
-#define BLOOM_TABLE 1
+#define CCH_TABLE   1
 #define ARRAY_TABLE 0
 #define DEEP_CTX    268435457  // (4^14)+1
 

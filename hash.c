@@ -17,8 +17,6 @@ HFAM *CreateHFamily(uint32_t k, uint32_t p){
   for(n = 0 ; n < k ; ++n){
     H->a[n] = rand() % UINT32_MAX;
     H->b[n] = rand() % UINT32_MAX;
-    fprintf(stderr, "A[%u]= %u\n", n, H->a[n]);
-    fprintf(stderr, "B[%u]= %u\n", n, H->b[n]);
     }
   H->p = p;
   return H;
@@ -36,7 +34,6 @@ void DeleteHFamily(HFAM *H){
 
 uint32_t Hash(HFAM *H, uint64_t i, uint32_t n){
   return (H->a[n] * i + H->b[n]) % H->p;
-  //return (i*H->a[n] + 63689) % 2147483647;
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

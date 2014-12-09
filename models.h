@@ -5,7 +5,7 @@
 #include "defs.h"
 #include "param.h"
 #include "mem.h"
-#include "bloom.h"
+#include "cch.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // MODELS SCHEME
@@ -55,7 +55,7 @@ typedef struct{
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
   ARRAY    A;         // COUNTER-TABLE LINK
   HASH     H;         // HASH-TABLE LINK
-  BLOOM    *B;        // BLOOM-TABLE LINK
+  CCH      *B;        // CCH-TABLE LINK
   }
 FCM;
 
@@ -69,7 +69,7 @@ typedef struct{
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
   ARRAY    A;         // COUNTER TABLE LINK
-  BLOOM    *B;        // BLOOM TABLE LINK
+  CCH      *B;        // CCH TABLE LINK
   }
 GFCM;
 

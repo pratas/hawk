@@ -7,7 +7,7 @@ CFLAGS = -O2 -Wall $(CPLP) -DPROGRESS #-DDEBUG
 LIBS   = -lm
 DEPS   = defs.h
 PROGS  = $(BIN)/Hawk
-OBJS   = mem.o misc.o args.o param.o dna.o hash.o bloom.o classes.o models.o \
+OBJS   = mem.o misc.o args.o param.o dna.o hash.o cch.o classes.o models.o \
          info.o gun.o bitio.o arith.o arith_aux.o
 #-----------------------------------------------------------------------------
 all:
@@ -27,8 +27,8 @@ dna.o: dna.c dna.h $(DEPS)
 	$(CC) -c $(CFLAGS) dna.c
 hash.o: hash.c hash.h $(DEPS)
 	$(CC) -c $(CFLAGS) hash.c
-bloom.o: bloom.c bloom.h $(DEPS)
-	$(CC) -c $(CFLAGS) bloom.c
+cch.o: cch.c cch.h $(DEPS)
+	$(CC) -c $(CFLAGS) cch.c
 classes.o: classes.c classes.h $(DEPS)
 	$(CC) -c $(CFLAGS) classes.c
 models.o: models.c models.h $(DEPS)

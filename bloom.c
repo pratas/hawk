@@ -11,7 +11,8 @@ BLOOM *CreateBloom(uint32_t k, uint32_t s, uint32_t n){
   BLOOM *B = (BLOOM *) Calloc(1, sizeof(BLOOM));
   B->size  = s;
   B->nSym  = n;
-  B->array = (BCC *) Calloc(B->size * B->nSym, sizeof(BCC));
+  B->array = (BCC *) Calloc(s, sizeof(BCC));
+  B->freqs = (uint32_t *) Calloc(B->nSym, sizeof(uint32_t)); 
   B->H     = CreateHFamily(k, 2147483647); // 2147483647 => LARGE PRIME (2^30)-1
   return B;
   }
@@ -26,32 +27,32 @@ void DeleteBloom(BLOOM *B){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-BCC *SearchBloom(BLOOM *B, uint64_t i){
-  uint32_t s, n, k = 0, min = MAX_BCC, sum[B->H->k];
-  BCC *bc;
-  for(n = 0 ; n < B->H->k ; ++n){
-    bc = &B->array[(Hash(B->H, i, n) % B->size) * B->nSym];
-    sum[n] = 0;
-    for(s = 0 ; s < B->nSym ; ++s) 
-      sum[n] += bc[s];
-    if(sum[n] < min){
-      min = sum[n];
-      k = n;
+void SearchBloom(BLOOM *B, uint64_t i){
+  uint32_t s, n, x, min;
+  i = i>>2<<2; // i &= 0xfffffffc [FIXME: THIS ONLY WORKS FOR 4 SYMBOLS]
+  for(s = 0 ; s < B->nSym ; ++s){
+    x = Hash(B->H, i, 0) % B->size;
+    min = B->array[x];
+    for(n = 1 ; n < B->H->k ; ++n){
+      x = Hash(B->H, i, n) % B->size;
+      if(B->array[x] < min)
+        min = B->array[x];
       }
+    B->freqs[s] = min;
+    ++i;
     }
-  return &B->array[(Hash(B->H, i, k) % B->size) * B->nSym]; // TODO: computed...
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void UpdateBloom(BLOOM *B, uint64_t i, uint8_t s){
-  uint32_t n, k;
+void UpdateBloom(BLOOM *B, uint64_t i){
+  uint32_t n, k, x;
   for(n = 0 ; n < B->H->k ; ++n){
-    BCC *bc = &B->array[(Hash(B->H, i, n) % B->size) * B->nSym];
-    if(++bc[s] == MAX_BCC){
+    x = Hash(B->H, i, n) % B->size;
+    if(B->array[x]++ == MAX_BCC){
       //fprintf(stderr, "Renormalizing Bloom counters\n");
-      for(k = B->nSym ; k-- ; )
-        bc[k] >>= 1;
+      for(k = B->size ; k-- ; )
+        B->array[k] >>= 1;
       }
     }
   }
