@@ -64,6 +64,7 @@
 #include "misc.h"
 #include "args.h"
 #include "param.h"
+#include "reads.h"
 #include "dna.h"
 #include "hash.h"
 #include "cch.h"
@@ -444,18 +445,116 @@ void EvaluateRLDna(CLASSES *C, PARAM *A, FILE *F, FCM *F1, FCM *F2){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // COMPRESS STREAM
 //
-inline uint32_t CompressStream(GFCM *M, FILE *F, uint8_t *buf, uint32_t i, 
-  uint8_t sym, uint8_t nSym){
-  buf[i] = sym;
-  GetIdx(buf+i-1, M);
+void CompressStream(GFCM *M, FILE *F, CBUF *B, uint8_t sym, uint8_t nSym){
+  B->buf[B->idx] = sym;
+  GetIdx(B->buf+B->idx-1, M);
   ComputeGFCM(M);
   AESym(sym, (int *) M->freqs, (int) M->freqs[nSym], F);
   UpdateGFCM(M, sym);
-  if(++i == BUF_SIZE){
-    memcpy(buf-GUARD, buf+i-GUARD, GUARD);
-    i=0;
+  UpdateCBuffer(B);
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// COMPRESS HEADER
+//
+void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
+  uint32_t x, s = strlen((char *) R->header1[1]);
+  uint8_t sym;
+  for(x = 0 ; x < s ; ++x){
+    B->buf[B->idx] = sym = C->H.A.numeric[R->header1[1][x]];
+
+    GetIdx(B->buf+B->idx-1, C->H.M[0]);
+    ComputeGFCM(C->H.M[0]);
+    AESym(sym, (int *) C->H.M[0]->freqs, (int) C->H.M[0]->freqs[C->H.A.nSym], W);
+    UpdateGFCM(C->H.M[0], sym);
+
+    UpdateCBuffer(B);
     }
-  return i;
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// COMPRESS SCORES
+//
+void CompressScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
+  uint32_t x, s = strlen((char *) R->scores);
+  uint8_t sym;
+  for(x = 0 ; x < s ; ++x){
+    B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
+
+    GetIdx(B->buf+B->idx-1, C->S.M[0]);
+    ComputeGFCM(C->S.M[0]);
+    AESym(sym, (int *) C->S.M[0]->freqs, (int) C->S.M[0]->freqs[C->S.A.nSym], W);
+    UpdateGFCM(C->S.M[0], sym);
+
+    UpdateCBuffer(B);
+    }
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// COMPRESS DNA BASES
+//
+void CompressBases(FILE *W, CLASSES *C, Read *R, CBUF *B, CBUF *BE, CBUF *BM,
+PARAM *A, SHOTGUN *Gun, GFCM *ME, GFCM *MM){
+
+  uint32_t z, x, m, best = 0, size = strlen((char *) R->bases)-1;
+  uint8_t s, n, update;
+
+  for(x = 0 ; x < size ; ++x){
+    s = R->bases[x]; 
+    if(s == 'N')
+      n = C->D.lfb; //break;
+    else
+      n = C->D.A.numeric[s];
+
+    B->buf[B->idx] = n;
+    update = (A->filter == 1 ? C->D.bica[C->D.idx] : 1);
+    Gun->sym[x] = n;
+
+    for(m = 0 ; m < C->D.nFCM ; ++m){
+
+      GetIdx4Dna(B->buf+B->idx-1, C->D.M[m]);
+      if(A->inverse == 1) GetIdx4DnaRev(B->buf+B->idx, C->D.M[m]);
+      #ifdef REVERSE 
+      if(A->reverse == 1) GetIdx4DnaRev(B->buf+B->idx, C->D.M[m]);
+      #endif
+
+      ComputeGun(C->D.M[m], Gun->freqs[m][x]);
+      Gun->bits[m] += CompGunProbs(Gun->freqs[m][x], n);
+
+      if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
+        Update4DnaFCM(C->D.M[m], n, 0);
+      if(A->inverse == 1)
+        Update4DnaFCM(C->D.M[m], 3-B->buf[B->idx-C->D.M[m]->ctx], 1);
+      #ifdef REVERSE
+      if(A->reverse == 1)
+        Update4DnaFCM(C->D.M[m], B->buf[B->idx-C->D.M[m]->ctx], 1);
+      #endif
+
+      #ifdef MEMORY
+      if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
+        fprintf(stderr, "Reseting DNA Hash model ...\n");
+        Reset4DnaModel(C->D.M[m]);
+        RestartPeakAndRS();
+        fprintf(stderr, "Done!\n");
+        }
+      #endif
+      }
+    UpdateCBuffer(B);
+    }
+
+  if(A->filter == 1)
+    CompressStream(ME, W, BE, C->D.bica[C->D.idx++], 2);
+
+  if(C->D.nFCM != 1){
+    best = BestInGun(Gun->bits, C->D.nFCM);
+    CompressStream(MM, W, BM, best, C->D.nFCM);
+    for(z = 0 ; z < size ; ++z) AESym(Gun->sym[z], (int *)
+      Gun->freqs[best][z], (int) Gun->freqs[best][z][4], W);
+    }
+  else{
+    for(z = 0 ; z < size ; ++z) AESym(Gun->sym[z], (int *)
+    Gun->freqs[0][z], (int) Gun->freqs[0][z][4], W);
+    }
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -463,34 +562,28 @@ inline uint32_t CompressStream(GFCM *M, FILE *F, uint8_t *buf, uint32_t i,
 // 
 void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   FILE *W = NULL;
-  int64_t x = 0;
-  uint64_t z, k, i, m, pos = 0, r = 0;
-  uint8_t *buf, *hea, *dna, *sco, s, n, line = 0, update = 0, best = 0;
   SHOTGUN *Gun = CreateShotgun(C->D.nFCM, C->S.maxLine, 4);
-  GFCM *Entropy = NULL, *Models = NULL;
-  uint32_t iHead = 0, iSco = 0, iEnt = 0, iMod = 0;
-  uint8_t *bufEnt = NULL, *bufMod = NULL;
-
-  buf = (uint8_t *) Calloc(BUF_SIZE,       sizeof(uint8_t));
-  hea = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
-  sco = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
-  dna = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
-  hea += GUARD; dna += GUARD; sco += GUARD; 
-
+  Read *Read = CreateRead(DEF_HEADER_SIZE, DEF_READ_SIZE);
+  CBUF *BH   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // HEADERS
+  CBUF *BS   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // SCORES
+  CBUF *BD   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // DNA
+  CBUF *BM   = NULL, *BE = NULL;
+  GFCM *ME   = NULL, *MM = NULL;
+  uint32_t readIdx = 0;
+  uint8_t  *tmp;
+  
   if(A->filter == 1){
     if(A->verbose == 1)
       fprintf(stderr, "Creating side information model [Filter]:\n");
-    Entropy = CreateGFCM(DEF_ENT_CTX, DEF_ENT_DEN, 2, A);
-    bufEnt  = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
-    bufEnt += GUARD;
+    ME = CreateGFCM(DEF_ENT_CTX, DEF_ENT_DEN, 2, A);
+    BE = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // ENTROPY
     }
 
   if(C->D.nFCM > 1){
     if(A->verbose == 1)
       fprintf(stderr, "Creating side information model [Models]:\n");
-    Models  = CreateGFCM(DEF_MOD_CTX, DEF_MOD_DEN, C->D.nFCM, A);
-    bufMod  = (uint8_t *) Calloc(BUF_SIZE+GUARD, sizeof(uint8_t));
-    bufMod += GUARD;
+    MM = CreateGFCM(DEF_MOD_CTX, DEF_MOD_DEN, C->D.nFCM, A);
+    BM = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // MODELS
     }
 
   Msg(A, "==[ COMPRESSION ]============\n");
@@ -500,107 +593,43 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   start_encode();
   EncodeParameters(C, A, W);
 
-  while((k=fread(buf, 1, BUF_SIZE, F)))
-    for(i=0 ; i<k ; ++i){
-      s=*(buf+i);
-      switch(line){
-        case 0: 
-        ///////////////////////////////////////////////////////////////////////
-          iHead = CompressStream(C->H.M[0], W, hea, iHead, C->H.A.numeric[s], 
-          C->H.A.nSym);
-          if(s == '\n'){ line = 1; pos = 0; }
-          
-        ///////////////////////////////////////////////////////////////////////
-        break;
- 
-        // COMPRESS DNA SEQUENCE
-        case 1:
-          if(s == '\n'){
-            line = 2; 
-            break; 
-            } 
-          else if(s=='A'||s=='C'||s=='G'||s=='T') n = C->D.A.numeric[s];
-          else n = C->D.lfb; //break;
-          dna[x] = n;
-          update = (A->filter == 1 ? C->D.bica[r] : 1);
-          Gun->sym[pos] = n;
-
-          for(m=0 ; m<C->D.nFCM ; ++m){
-   
-            GetIdx4Dna(dna+x-1, C->D.M[m]);
-            if(A->inverse == 1) GetIdx4DnaRev(dna+x, C->D.M[m]);
-            #ifdef REVERSE 
-            if(A->reverse == 1) GetIdx4DnaRev(dna+x, C->D.M[m]);
-            #endif
-
-            ComputeGun(C->D.M[m], Gun->freqs[m][pos]);
-            Gun->bits[m] += CompGunProbs(Gun->freqs[m][pos], n);
-
-            if(update == 1 || C->D.M[m]->ctx < HIGH_CTXBG)
-              Update4DnaFCM(C->D.M[m], n, 0);
-            if(A->inverse == 1)
-              Update4DnaFCM(C->D.M[m], 3-dna[x-C->D.M[m]->ctx], 1);
-            #ifdef REVERSE
-            if(A->reverse == 1)
-              Update4DnaFCM(C->D.M[m], dna[x-C->D.M[m]->ctx], 1);
-            #endif
-
-            #ifdef MEMORY
-            if(C->D.M[m]->mode == HASH_TABLE && PeakMem() > A->memory){
-              fprintf(stderr, "Reseting DNA Hash model ...\n"); 
-              Reset4DnaModel(C->D.M[m]);
-              RestartPeakAndRS();
-              fprintf(stderr, "Done!\n");
-              }
-            #endif
-            }
-
-          ++pos;
-          if(++x==BUF_SIZE){ memcpy(dna-GUARD, dna+x-GUARD, GUARD); x=0; }
-        break;
-
-        case 2: if(s == '\n') line = 3; break;
-
-        case 3: 
-          iSco = CompressStream(C->S.M[0], W, sco, iSco, C->S.A.numeric[s], 
-                 C->S.A.nSym);
-
-          if(s == '\n'){ 
-            if(A->filter == 1)
-              iEnt = CompressStream(Entropy, W, bufEnt, iEnt, C->D.bica[r], 2);
-            if(C->D.nFCM != 1){
-              iMod = CompressStream(Models, W, bufMod, iMod, best =
-              BestInGun(Gun->bits, C->D.nFCM), C->D.nFCM);
-              for(z = 0 ; z < pos ; ++z) AESym(Gun->sym[z], (int *)
-                Gun->freqs[best][z], (int) Gun->freqs[best][z][4], W);
-              }
-            else{
-              for(z = 0 ; z < pos ; ++z) AESym(Gun->sym[z], (int *)
-                Gun->freqs[0][z], (int) Gun->freqs[0][z][4], W);
-              }
-
-          line = 0; 
-          Progress(C->nReads, ++r); 
-          } 
-        break;
+  while(GetRead(F, Read)){
+       /*
+    if(read->skipNs){
+      n = m = 0;
+      while(read->bases[n] != '\n'){
+        if(read->bases[n] != 'N')
+          read->bases[m++] = read->bases[n];
+        n++;
         }
-      }
+      read->bases[m++] = '\n';
+      read->bases[m] = '\0';
+      } */
+
+    CompressHeader (W, C, Read, BH);
+    CompressScores (W, C, Read, BS);
+    CompressBases  (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
+
+    tmp = Read->header1[1];
+    Read->header1[1] = Read->header1[0];
+    Read->header1[0] = tmp;
+    Progress(C->nReads, ++readIdx);
+    }
 
   finish_encode(W);
   doneoutputtingbits(W);
   fclose(W);
   DeleteShotgun(Gun, C->D.nFCM, C->S.maxLine, 4);
-  Free(hea-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t)); 
-  Free(dna-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t)); 
-  Free(sco-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t)); 
-  Free(buf, BUF_SIZE * sizeof(uint8_t)); 
+  RemoveCBuffer(BH);
+  RemoveCBuffer(BS);
+  RemoveCBuffer(BD);
   if(A->filter == 1){
-    Free(bufEnt-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t));
-    FreeGModel(Entropy);
+    RemoveCBuffer(BE);
+    FreeGModel(ME);
     }
   if(C->D.nFCM > 1){
-    Free(bufMod-GUARD, (BUF_SIZE+GUARD) * sizeof(uint8_t));
-    FreeGModel(Models);
+    RemoveCBuffer(BM);
+    FreeGModel(MM);
     }
 
   fprintf(stderr, "[>] Done!                           \n"); // SPACES ARE VALID 
@@ -664,6 +693,7 @@ void ActionC(PARAM *A, char *fn){
     FCM *F1=Create4DnaFCM(A->fLow,  CalcAlphaDenT(4, A->fLow),  0, 4, A);
     FCM *F2=Create4DnaFCM(A->fHigh, CalcAlphaDenT(4, A->fHigh), 0, 4, A);
     C->D.bica = (uint8_t *) Calloc(C->nReads, sizeof(uint8_t));
+    C->D.idx  = 0;
     EvaluateLRDna(C, A, DK,  F1, F2);
     EvaluateRLDna(C, A, DKR, F1, F2);
     Free4DnaModel(F1);
@@ -684,6 +714,7 @@ void ActionC(PARAM *A, char *fn){
     fprintf(stderr, "[x] Error: too many models!\n"); exit(1);
     }
 
+  C->D.idx  = 0;
   // HEADERS, DNA SEQUENCE AND QUALITY-SCORES COMPRESSION
   Compress(C, A, F, fn, cn);
 

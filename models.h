@@ -95,6 +95,7 @@ typedef struct{
   ALPHA    A;         // ALPHABET POINTER  
   uint8_t  nFCM;      // NUMBER OF FCMs
   uint8_t  *bica;     // BINARY INFORMATION CONTENT ARRAY [LOW OR HIGH ENTROPY]
+  uint32_t idx;       // INDEX POSTITION FOR BINARY INFORMATION CONTENT ARRAY
   uint8_t  lfb;       // LESS FREQUENT BASE
   }
 DNA;

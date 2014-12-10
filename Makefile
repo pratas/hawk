@@ -2,13 +2,13 @@ BIN    = .
 CC     = gcc
 CPLP   = -g -pg
 #-----------------------------------------------------------------------------
-CFLAGS = -O2 -Wall $(CPLP) -DPROGRESS #-DDEBUG
+CFLAGS = -O2 -Wall $(CPLP) -DPROGRESS -DMEMORY #-DDEBUG -DREVERSE
 #-----------------------------------------------------------------------------
 LIBS   = -lm
 DEPS   = defs.h
 PROGS  = $(BIN)/Hawk
-OBJS   = mem.o misc.o args.o param.o dna.o hash.o cch.o classes.o models.o \
-         info.o gun.o bitio.o arith.o arith_aux.o
+OBJS   = mem.o misc.o args.o param.o reads.o dna.o hash.o cch.o classes.o \
+         models.o info.o gun.o bitio.o arith.o arith_aux.o
 #-----------------------------------------------------------------------------
 all:
 	$(MAKE) progs
@@ -23,6 +23,8 @@ args.o: args.c args.h $(DEPS)
 	$(CC) -c $(CFLAGS) args.c
 param.o: param.c param.h $(DEPS)
 	$(CC) -c $(CFLAGS) param.c
+reads.o: reads.c reads.h $(DEPS)
+	$(CC) -c $(CFLAGS) reads.c
 dna.o: dna.c dna.h $(DEPS)
 	$(CC) -c $(CFLAGS) dna.c
 hash.o: hash.c hash.h $(DEPS)
