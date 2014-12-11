@@ -626,6 +626,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   doneoutputtingbits(W);
   fclose(W);
   DeleteShotgun(Gun, C->D.nFCM, C->S.maxLine, 4);
+  FreeRead(Read);
   RemoveCBuffer(BH);
   RemoveCBuffer(BS);
   RemoveCBuffer(BD);
