@@ -379,7 +379,7 @@ void ComputeGFCM(GFCM *M){
   else{
     a = &M->A.cnts[M->idx*M->nSym];
     for(x = 0 ; x < M->nSym ; ++x)
-      M->freqs[x] = 1+M->aDen*a[x]; 
+      M->freqs[x] = 1 + M->aDen * a[x]; 
     }
   M->freqs[M->nSym] = M->freqs[0];
   for(x = 1 ; x < M->nSym ; ++x)

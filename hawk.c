@@ -295,17 +295,23 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
     0, C->D.A.nSym, A);
     }
 
-  for(n = 0 ; n < xc ; ++n) if(!strcmp("-S", xv[n])) ++nS;
-  C->S.M = (GFCM **) Calloc(nS, sizeof(GFCM *));
+  //for(n = 0 ; n < xc ; ++n) if(!strcmp("-S", xv[n])) ++nS;
+  C->S.M = (GFCM **) Calloc(C->S.nStates, sizeof(GFCM *));
   for(n = 0 ; n < xc ; ++n)
     if(!strcmp("-S", xv[n])){
       if((ctx = atoi(xv[n+1])) > SMAX_CTX || ctx < SMIN_CTX){
         fprintf(stderr, "Error: invalid Scores context (-S)!\n");
         exit(1);
         }
-      Msg(A, "Creating Scores model:\n");
-      C->S.M[C->S.nFCM++] = CreateGFCM(ctx, CalcAlphaDen(C->S.A.nSym, ctx),
-      C->S.A.nSym, A);
+      uint32_t state;
+      for(state = 0 ; state < C->S.nStates ; ++state){
+        if(A->verbose == 1)
+          fprintf(stderr, "Creating Scores model [state %u of %u]:\n", state+1, 
+          C->S.nStates);
+        C->S.M[state] = CreateGFCM(ctx, CalcAlphaDen(C->S.A.nSym, ctx),
+        C->S.A.nSym, A);
+        } 
+      break;
       }
 
   Free(*xv, xc * sizeof(char *)); 
@@ -487,24 +493,24 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
 // COMPRESS SCORES WITH CONSTANT LENGTH
 //
 void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
-  uint32_t x, s = strlen((char *)R->scores)-1;
-  uint8_t sym, state;
+  uint32_t x, s = strlen((char *)R->scores)-1, state;
+  uint8_t sym;
 
   // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
   while(s > 0 && R->scores[s] == '#') --s;
 
   for(x = 0 ; x < s ; ++x){
-    // state = x * states / C->S.maxLine;
     B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
+    state = C->S.states[x];
 
-    GetIdx(B->buf+B->idx-1, C->S.M[0]);
-    ComputeGFCM(C->S.M[0]);
-    AESym(sym, (int *)C->S.M[0]->freqs, (int)C->S.M[0]->freqs[C->S.A.nSym], W);
-    UpdateGFCM(C->S.M[0], sym);
+    GetIdx(B->buf+B->idx-1, C->S.M[state]);
+    ComputeGFCM(C->S.M[state]);
+    AESym(sym, (int *) C->S.M[state]->freqs, (int)
+    C->S.M[state]->freqs[C->S.A.nSym], W);
+    UpdateGFCM(C->S.M[state], sym);
 
     UpdateCBuffer(B);
     }
-
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

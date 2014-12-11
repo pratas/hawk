@@ -16,9 +16,11 @@ CLASSES *InitClasses(void){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static uint32_t *CreateStates(uint32_t n){
-  uint32_t *states = (uint32_t *) Calloc(n, sizeof(uint32_t));
-  
+static uint32_t *CreateStates(uint32_t n, uint32_t m){
+  uint32_t k;
+  uint32_t *states = (uint32_t *) Calloc(m+GUARD, sizeof(uint32_t));
+  for(k = 0 ; k < m ; ++k)
+    states[k] = k * n / m;  // SET STATES MASK    
   return states;
   }
 
@@ -36,15 +38,15 @@ void SetValues(CLASSES *C, PARAM *P){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void CreateAuxStates(CLASSES *C){
-  C->H.states = CreateStates(C->H.nStates);
-  C->S.states = CreateStates(C->S.nStates);
+  C->H.states = CreateStates(C->H.nStates, C->H.maxLine);
+  C->S.states = CreateStates(C->S.nStates, C->S.maxLine);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void DeleteAuxStates(CLASSES *C){
-  Free(C->H.states, C->H.nStates * sizeof(uint32_t));
-  Free(C->S.states, C->S.nStates * sizeof(uint32_t));
+  Free(C->H.states, (C->H.maxLine+GUARD) * sizeof(uint32_t));
+  Free(C->S.states, (C->S.maxLine+GUARD) * sizeof(uint32_t));
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
