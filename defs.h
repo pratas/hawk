@@ -46,6 +46,9 @@ uint64_t garbage;
 #define DEF_ENT_DEN 1
 #define DEF_MOD_CTX 5
 #define DEF_MOD_DEN 1
+#define DEF_STATES  3
+#define MIN_STATES  1
+#define MAX_STATES  200
 #define MAX_AL      256
 #define INVALID_S   256
 #define HMIN_CTX    1

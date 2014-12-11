@@ -85,6 +85,8 @@ typedef struct{
   GFCM     **M;       // HEADERS FCMs POINTER          
   ALPHA    A;         // ALPHABET POINTER  
   uint64_t maxLine;   // MAXIMUM LINE NUMBER
+  uint32_t nStates;   // NUMBER OF STATES
+  uint32_t *states;   // MULTISTATE INDEXES ARRAY
   uint8_t  nFCM;      // NUMBER OF FCMs
   uint8_t  type;      // TYPE OF HEADERS
   uint8_t  extra;     // PRESENCE OR NOT OF THE EXTRA HEADER
@@ -106,6 +108,8 @@ typedef struct{
   ALPHA    A;         // ALPHABET POINTER  
   uint8_t  nFCM;      // NUMBER OF FCMs
   uint64_t maxLine;   // MAXIMUM LINE NUMBER
+  uint32_t nStates;   // NUMBER OF STATES
+  uint32_t *states;   // MULTISTATE INDEXES ARRAY
   uint8_t  dynamic;   // IF NUMBER OF LINE IS DYNAMIC
   uint8_t  not0N;     // ANY SCORE ZERO MATCH WITH 'N' BASE? IF NOT => 1 
   }

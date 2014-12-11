@@ -58,6 +58,8 @@ typedef struct{
   uint8_t  fLow;        // LOWER CONTEXT ORDER FOR FILTER 
   uint8_t  fHigh;       // HIGH CONTEXT ORDER FOR FILTER
   uint8_t  filter;      // USE FILTER
+  uint32_t hNStates;    // USE MULTI-STATE FCMS FOR HEADERS
+  uint32_t sNStates;    // USE MULTI-STATE FCMS FOR SCORES
   uint8_t  inverse;     // USE INVERSIONS (REVERSE AND COMPLEMENT)
   #ifdef REVERSE
   uint8_t  reverse;     // USE REVERSIONS

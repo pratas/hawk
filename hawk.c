@@ -92,10 +92,6 @@ void InitAlphabets(CLASSES *C){
   C->H.A.nSym     = 0;
   C->D.A.nSym     = 0;
   C->S.A.nSym     = 0;
-  C->H.extra      = 1; // 1=>EXISTS EXTRA HEADER (ALGORITHM FASTER W/ INVERSION)
-  C->H.maxLine    = 1; 
-  C->S.maxLine    = 1; 
-  C->S.dynamic    = 0; // 1=>IS DYNAMIC
   }
 
 void FreeAlphabets(CLASSES *C){
@@ -131,7 +127,7 @@ void PrintStreamInfo(CLASSES *C){
     C->H.A.symbolic[k] == '\n' ? fprintf(stderr, "\\n") :
     fprintf(stderr, "%c", C->H.A.symbolic[k]);
   fprintf(stderr, "\n  [+] Maximum line size ..... %"PRIu64"\n", C->H.maxLine);
-  fprintf(stderr, "\n");
+  fprintf(stderr, "  [+] Number of states ...... %u\n", C->H.nStates);
   fprintf(stderr, "  [+] Extra header .......... %s\n", C->H.extra?y:n);
   fprintf(stderr, "DNA information:\n");
   fprintf(stderr, "  [+] Length ................ %"PRIu64"\n", C->D.A.length);
@@ -150,6 +146,7 @@ void PrintStreamInfo(CLASSES *C){
   fprintf(stderr, "\n  [+] Maximum line size ..... %"PRIu64"\n", C->S.maxLine);
   fprintf(stderr, "  [+] Dynamic line size ..... %s\n", C->S.dynamic?y:n);
   fprintf(stderr, "  [+] Lower score match N ... %s\n", C->S.not0N?n:y);
+  fprintf(stderr, "  [+] Number of states ...... %u\n", C->S.nStates);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -676,6 +673,7 @@ void ActionC(PARAM *A, char *fn){
     }
   CLASSES *C = InitClasses();
   C->length = b;
+  SetValues(C, A);
   ParseFile(C, F, A);
 
   // IF nFCM = 1 IT USES THE FILTER, HOWEVER ONLY IN CREATEMODELS THE nFCM IS
@@ -712,6 +710,7 @@ void ActionC(PARAM *A, char *fn){
     }
 
   RestartPeak();      // RESTART MEMORY PEAK [IT WILL IGNORE THE FILTERING PART]
+  CreateAuxStates(C);
   CreateModels(C, p, F, A);      // CREATE ALL FCM MODELS [FOR COMPRESSION MODE] 
 
   // DO NOT USE FILTERING IF THE NUMBER OF MODELS IS NOT AT LEAST 2 AND REPORT A
@@ -728,6 +727,7 @@ void ActionC(PARAM *A, char *fn){
   // FREE MODELS & PRINT MEMORY INFORMATION FOR THE UNCOMPRESSION PROCESS
   FreeModels(C, A);
   FreeAlphabets(C);
+  DeleteAuxStates(C);
   FreeClasses(C);
   Free(cn, MFILENM * sizeof(char));
   #ifdef MEMORY
@@ -776,6 +776,8 @@ int main(int argc, char *argv[]){
     "  -fl <ORDER>   lower context order for filter,                \n"
     "  -fh <ORDER>   higher context order for filter,               \n"
     "  -fn           do NOT use filter,                             \n" 
+    "  -sh <STATES>  number of multi-states for headers,            \n" 
+    "  -ss <STATES>  number of multi-states for quality scores,     \n" 
     "  -l  <LEVEL>   compression level [1,...,9],                   \n" 
     "  -a            adjust context to data,                        \n" 
     "  -i            use inversions (DNA sequence only),            \n" 
@@ -815,20 +817,22 @@ int main(int argc, char *argv[]){
     return EXIT_SUCCESS;
     }
 
-  A->verbose = ArgBin(DEF_VERBOSE, p, argc, "-v");
-  A->force   = ArgBin(DEF_FORCE,   p, argc, "-f");
-  A->level   = ArgNum(DEF_LEVEL,   p, argc, "-l",  MIN_LEVEL, MAX_LEVEL);
-  A->fLow    = ArgNum(DEF_FL_CTX,  p, argc, "-fl", MIN_F_CTX, MAX_F_CTX);
-  A->fHigh   = ArgNum(DEF_FH_CTX,  p, argc, "-fh", MIN_F_CTX, MAX_F_CTX);
-  A->filter  = ArgBin(DEF_FILTER,  p, argc, "-fn");
-  A->inverse = ArgBin(DEF_INVERSE, p, argc, "-i");
+  A->verbose  = ArgBin(DEF_VERBOSE, p, argc, "-v");
+  A->force    = ArgBin(DEF_FORCE,   p, argc, "-f");
+  A->level    = ArgNum(DEF_LEVEL,   p, argc, "-l",  MIN_LEVEL, MAX_LEVEL);
+  A->fLow     = ArgNum(DEF_FL_CTX,  p, argc, "-fl", MIN_F_CTX, MAX_F_CTX);
+  A->fHigh    = ArgNum(DEF_FH_CTX,  p, argc, "-fh", MIN_F_CTX, MAX_F_CTX);
+  A->filter   = ArgBin(DEF_FILTER,  p, argc, "-fn");
+  A->hNStates = ArgNum(DEF_STATES,  p, argc, "-sh", MIN_STATES, MAX_STATES);
+  A->sNStates = ArgNum(DEF_STATES,  p, argc, "-ss", MIN_STATES, MAX_STATES);
+  A->inverse  = ArgBin(DEF_INVERSE, p, argc, "-i");
   #ifdef REVERSE
-  A->reverse = ArgBin(DEF_REVERSE, p, argc, "-r");
+  A->reverse  = ArgBin(DEF_REVERSE, p, argc, "-r");
   #endif
-  A->adjust  = ArgBin(DEF_ADJUST,  p, argc, "-a");
-  A->mode    = ArgBin(DEF_MODE,    p, argc, "-c");
+  A->adjust   = ArgBin(DEF_ADJUST,  p, argc, "-a");
+  A->mode     = ArgBin(DEF_MODE,    p, argc, "-c");
   #ifdef MEMORY
-  A->memory  = (uint64_t) ArgNum(DEF_MEM,  p, argc, "-m", MIN_MEM, MAX_MEM) *
+  A->memory   = (uint64_t) ArgNum(DEF_MEM,  p, argc, "-m", MIN_MEM, MAX_MEM) *
                1048576;
   #endif
 

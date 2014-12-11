@@ -16,8 +16,11 @@ CLASSES;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-CLASSES  *InitClasses  (void);
-void     FreeClasses   (CLASSES *);
+CLASSES  *InitClasses    (void);
+void     SetValues       (CLASSES *, PARAM *);  
+void     CreateAuxStates (CLASSES *);
+void     DeleteAuxStates (CLASSES *);
+void     FreeClasses     (CLASSES *);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
