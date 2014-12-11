@@ -93,6 +93,7 @@ void InitAlphabets(CLASSES *C){
   C->D.A.nSym     = 0;
   C->S.A.nSym     = 0;
   C->H.extra      = 1; // 1=>EXISTS EXTRA HEADER (ALGORITHM FASTER W/ INVERSION)
+  C->H.maxLine    = 1; 
   C->S.maxLine    = 1; 
   C->S.dynamic    = 0; // 1=>IS DYNAMIC
   }
@@ -129,6 +130,7 @@ void PrintStreamInfo(CLASSES *C){
   for(k = 0 ; k < C->H.A.nSym ; ++k)
     C->H.A.symbolic[k] == '\n' ? fprintf(stderr, "\\n") :
     fprintf(stderr, "%c", C->H.A.symbolic[k]);
+  fprintf(stderr, "\n  [+] Maximum line size ..... %"PRIu64"\n", C->H.maxLine);
   fprintf(stderr, "\n");
   fprintf(stderr, "  [+] Extra header .......... %s\n", C->H.extra?y:n);
   fprintf(stderr, "DNA information:\n");
@@ -170,7 +172,8 @@ void ParseFile(CLASSES *C, FILE *F, PARAM *A){
     for(i = 0 ; i < k ; ++i){
       s = *(buf+i);
       switch(line){
-        case 0: 
+        case 0:
+          if(C->H.maxLine < ++pos) C->H.maxLine = pos; 
           if(s == '\n'){ line = 1; pos = 0; break; }
           C->H.A.length++; binH[s] = 1; 
         break;
@@ -206,6 +209,7 @@ void ParseFile(CLASSES *C, FILE *F, PARAM *A){
           binS[s] = 1;
           if(s == '\n'){
             C->nReads++; line = 0; if(pos != C->S.maxLine) C->S.dynamic = 1;
+            pos = 0;
             break;
             }
           C->S.A.length++;
@@ -242,6 +246,16 @@ void ParseFile(CLASSES *C, FILE *F, PARAM *A){
     Msg(A, "[!] Found non-regular DNA data  [filtering usage: off].\n");
     Msg(A, "[!] General purpose FCM will be used [inversions: off].\n");
     A->filter = 0; A->inverse = 0; 
+    }
+
+  // REMOVE '\n' IF QUALITY STREAMS HAVE FIXED SIZES
+  if(C->S.dynamic == 0){
+    binS['\n']  = 0;
+    C->S.A.nSym = 0;
+    for(k = 0 ; k < MAX_AL ; ++k){
+        if(binS[k] == 1){ C->S.A.symbolic[C->S.A.nSym] = k;
+          C->S.A.numeric[k] = C->S.A.nSym++; }
+        }
     }
 
   Free(bases,   NSYM * sizeof(uint8_t));
@@ -449,7 +463,7 @@ void CompressStream(GFCM *M, FILE *F, CBUF *B, uint8_t sym, uint8_t nSym){
   B->buf[B->idx] = sym;
   GetIdx(B->buf+B->idx-1, M);
   ComputeGFCM(M);
-  AESym(sym, (int *) M->freqs, (int) M->freqs[nSym], F);
+  AESym(sym, (int *)M->freqs, (int)M->freqs[nSym], F);
   UpdateGFCM(M, sym);
   UpdateCBuffer(B);
   }
@@ -465,7 +479,7 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
 
     GetIdx(B->buf+B->idx-1, C->H.M[0]);
     ComputeGFCM(C->H.M[0]);
-    AESym(sym, (int *) C->H.M[0]->freqs, (int) C->H.M[0]->freqs[C->H.A.nSym], W);
+    AESym(sym, (int *)C->H.M[0]->freqs, (int)C->H.M[0]->freqs[C->H.A.nSym], W);
     UpdateGFCM(C->H.M[0], sym);
 
     UpdateCBuffer(B);
@@ -473,21 +487,27 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// COMPRESS SCORES
+// COMPRESS SCORES WITH CONSTANT LENGTH
 //
-void CompressScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
-  uint32_t x, s = strlen((char *) R->scores);
-  uint8_t sym;
+void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
+  uint32_t x, s = strlen((char *)R->scores)-1;
+  uint8_t sym, state;
+
+  // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
+  while(s > 0 && R->scores[s] == '#') --s;
+
   for(x = 0 ; x < s ; ++x){
+    // state = x * states / C->S.maxLine;
     B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
 
     GetIdx(B->buf+B->idx-1, C->S.M[0]);
     ComputeGFCM(C->S.M[0]);
-    AESym(sym, (int *) C->S.M[0]->freqs, (int) C->S.M[0]->freqs[C->S.A.nSym], W);
+    AESym(sym, (int *)C->S.M[0]->freqs, (int)C->S.M[0]->freqs[C->S.A.nSym], W);
     UpdateGFCM(C->S.M[0], sym);
 
     UpdateCBuffer(B);
     }
+
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -500,12 +520,9 @@ PARAM *A, SHOTGUN *Gun, GFCM *ME, GFCM *MM){
   uint8_t s, n, update;
 
   for(x = 0 ; x < size ; ++x){
-    s = R->bases[x]; 
-    if(s == 'N')
-      n = C->D.lfb; //break;
-    else
-      n = C->D.A.numeric[s];
 
+    s = R->bases[x]; 
+    n = (s == 'N' ? C->D.lfb : C->D.A.numeric[s]); // BREAK ON C->D.lfb
     B->buf[B->idx] = n;
     update = (A->filter == 1 ? C->D.bica[C->D.idx] : 1);
     Gun->sym[x] = n;
@@ -563,7 +580,7 @@ PARAM *A, SHOTGUN *Gun, GFCM *ME, GFCM *MM){
 void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   FILE *W = NULL;
   SHOTGUN *Gun = CreateShotgun(C->D.nFCM, C->S.maxLine, 4);
-  Read *Read = CreateRead(DEF_HEADER_SIZE, DEF_READ_SIZE);
+  Read *Read = CreateRead(C->H.maxLine+GUARD, C->S.maxLine+GUARD);
   CBUF *BH   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // HEADERS
   CBUF *BS   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // SCORES
   CBUF *BD   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // DNA
@@ -594,21 +611,10 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   EncodeParameters(C, A, W);
 
   while(GetRead(F, Read)){
-       /*
-    if(read->skipNs){
-      n = m = 0;
-      while(read->bases[n] != '\n'){
-        if(read->bases[n] != 'N')
-          read->bases[m++] = read->bases[n];
-        n++;
-        }
-      read->bases[m++] = '\n';
-      read->bases[m] = '\0';
-      } */
 
-    CompressHeader (W, C, Read, BH);
-    CompressScores (W, C, Read, BS);
-    CompressBases  (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
+    CompressHeader   (W, C, Read, BH);
+    CompressCSScores (W, C, Read, BS);
+    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
 
     tmp = Read->header1[1];
     Read->header1[1] = Read->header1[0];

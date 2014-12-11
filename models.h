@@ -84,6 +84,7 @@ ALPHA;
 typedef struct{
   GFCM     **M;       // HEADERS FCMs POINTER          
   ALPHA    A;         // ALPHABET POINTER  
+  uint64_t maxLine;   // MAXIMUM LINE NUMBER
   uint8_t  nFCM;      // NUMBER OF FCMs
   uint8_t  type;      // TYPE OF HEADERS
   uint8_t  extra;     // PRESENCE OR NOT OF THE EXTRA HEADER
