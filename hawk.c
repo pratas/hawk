@@ -265,20 +265,24 @@ void ParseFile(CLASSES *C, FILE *F, PARAM *A){
 // 
 void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
   char **xv;
-  int32_t n, nH = 0, nD = 0, nS = 0, ctx, xc = StrToArgv(p, &xv);
+  int32_t n, state, nD = 0, ctx, xc = StrToArgv(p, &xv);
 
   if(A->verbose) fprintf(stderr, "==[ MODELS ]=================\n");
-  for(n = 0 ; n < xc ; ++n) if(!strcmp("-H", xv[n])) ++nH;
-  C->H.M = (GFCM **) Calloc(nH, sizeof(GFCM *));
+  C->H.M = (GFCM **) Calloc(C->H.nStates, sizeof(GFCM *));
   for(n = 0 ; n < xc ; ++n)
     if(!strcmp("-H", xv[n])){
       if((ctx = atoi(xv[n+1])) > HMAX_CTX || ctx < HMIN_CTX){
         fprintf(stderr, "Error: invalid header context (-H)!\n");
         exit(1);
         }
-      Msg(A, "Creating Header model:\n");
-      C->H.M[C->H.nFCM++] = CreateGFCM(ctx, CalcAlphaDen(C->H.A.nSym, ctx), 
-      C->H.A.nSym, A);
+      for(state = 0 ; state < C->H.nStates ; ++state){
+        if(A->verbose == 1)
+          fprintf(stderr, "Creating Headers model [state %u of %u]:\n", state+1,
+          C->H.nStates);
+        C->H.M[state] = CreateGFCM(ctx, CalcAlphaDen(C->H.A.nSym, ctx),
+        C->H.A.nSym, A);
+        }
+      break;
       }
 
   for(n = 0 ; n < xc ; ++n) if(!strcmp("-D", xv[n])) ++nD;
@@ -295,7 +299,6 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
     0, C->D.A.nSym, A);
     }
 
-  //for(n = 0 ; n < xc ; ++n) if(!strcmp("-S", xv[n])) ++nS;
   C->S.M = (GFCM **) Calloc(C->S.nStates, sizeof(GFCM *));
   for(n = 0 ; n < xc ; ++n)
     if(!strcmp("-S", xv[n])){
@@ -303,7 +306,6 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
         fprintf(stderr, "Error: invalid Scores context (-S)!\n");
         exit(1);
         }
-      uint32_t state;
       for(state = 0 ; state < C->S.nStates ; ++state){
         if(A->verbose == 1)
           fprintf(stderr, "Creating Scores model [state %u of %u]:\n", state+1, 
@@ -324,9 +326,9 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
 void FreeModels(CLASSES *C, PARAM *A){
   uint32_t n;
   if(A->filter == 1) Free(C->D.bica, C->nReads * sizeof(uint8_t));
-  for(n = 0 ; n < C->H.nFCM ; ++n) FreeGModel(C->H.M[n]);
+  for(n = 0 ; n < C->H.nStates ; ++n) FreeGModel(C->H.M[n]);
   for(n = 0 ; n < C->D.nFCM ; ++n) Free4DnaModel(C->D.M[n]);
-  for(n = 0 ; n < C->S.nFCM ; ++n) FreeGModel(C->S.M[n]);
+  for(n = 0 ; n < C->S.nStates ; ++n) FreeGModel(C->S.M[n]);
   Free(C->H.M, C->H.nFCM * sizeof(GFCM *));
   Free(C->D.M, C->D.nFCM * sizeof(FCM  *));
   Free(C->S.M, C->S.nFCM * sizeof(GFCM *));
