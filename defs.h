@@ -36,7 +36,7 @@ uint64_t garbage;
 #define DEF_PARAM   0
 #define DEF_FILTER  1
 #define DEF_FORCE   0
-#define DEF_LEVEL   5
+#define DEF_LEVEL   7
 #define DEF_MODE    1     // DEFAULT = HASH MODE
 #define DEF_INVERSE 0
 #define DEF_REVERSE 0

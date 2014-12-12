@@ -10,11 +10,11 @@
 #define LEVEL_0                                           \
   "-H 1 "                                                 \
   "-D 12 "                                                \
-  "-S 1"
+  "-S 2"
 #define LEVEL_1                                           \
   "-H 1 "                                                 \
   "-D 4 -D 13 "                                           \
-  "-S 1"
+  "-S 2"
 #define LEVEL_2                                           \
   "-H 1 "                                                 \
   "-D 4 -D 14 "                                           \

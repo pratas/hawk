@@ -500,7 +500,7 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
 void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
   uint32_t x, s = strlen((char *)R->scores)-1, state;
   uint8_t sym;
-  uint64_t idx, k;
+  uint64_t idx = 0;
 
   // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
   while(s > 0 && R->scores[s] == '#') --s;
@@ -517,10 +517,9 @@ void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
     UpdateGFCM(C->S.M[state], sym);
 
     UpdateCBuffer(B);
-
-    for(k = 0 ; k < C->S.nStates ; ++k) //XXX: IMPROVE!
-      C->S.M[k]->idx = idx;             //XXX: SHAME ALGORITHM
+    if(x < s-1) C->S.M[(uint32_t) C->S.states[x+1]]->idx = idx;
     }
+  C->S.M[0]->idx = idx;
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -625,9 +624,9 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
 
   while(GetRead(F, Read)){
 
-    CompressHeader   (W, C, Read, BH);
+//    CompressHeader   (W, C, Read, BH);
     CompressCSScores (W, C, Read, BS);
-    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
+//    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
 
     tmp = Read->header1[1];
     Read->header1[1] = Read->header1[0];

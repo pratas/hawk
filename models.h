@@ -11,18 +11,20 @@
 // MODELS SCHEME
 //
 typedef uint16_t    ACC;        // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
+typedef uint16_t    GACC;       // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
 typedef uint8_t     HCC;        // SIZE OF COUNTERS FOR HASH TABLE
 
 typedef uint16_t    ENTMAX;     // ENTRY SIZE (NKEYS FOR EACH HINDEX)
 typedef HCC         HCCs[4];    // DEFAULT HASH COUNTERS
 
+#define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
 #define MAXACC_C    (((uint64_t)1<<(sizeof(ACC)*8))-1)
+#define MAXGACC_C   (((uint64_t)1<<(sizeof(GACC)*8))-1)
 #define MAXHCC_C    (((uint64_t)1<<(sizeof(HCC)*8))-1)
 #define MAXHCC_H    3
-#define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
 
 // HASH
-#define HSIZE       33554471 //16777259 // USE HIGHER VALUE HIGHER THAN 24 BITS
+#define HSIZE       33554471 //16777259 // USE VALUE HIGHER THAN 24 BITS
 
 typedef struct{       // ENTRY FOR 4 SYMBOLS
   uint16_t key;       // THE KEY (INDEX / HASHSIZE) STORED IN THIS ENTRY
@@ -41,6 +43,11 @@ typedef struct{
   ACC      *cnts;     // TABLE COUNTERS
   }
 ARRAY;
+
+typedef struct{
+  GACC     *cnts;     // TABLE COUNTERS FOR GLOBAL MODEL
+  }
+GARRAY;
 
 typedef struct{
   uint64_t nPMod;     // MAXIMUM NUMBER OF PROBABILITY MODELS
@@ -68,7 +75,7 @@ typedef struct{
   uint32_t *freqs;    // FCM SYMBOL PROBABILITIES
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
-  ARRAY    A;         // COUNTER TABLE LINK
+  GARRAY   A;         // COUNTER TABLE LINK
   CCH      *B;        // CCH TABLE LINK
   }
 GFCM;

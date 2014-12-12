@@ -60,7 +60,7 @@ static void Init4DnaArrayTab(FCM *M){
 // INITIALIZE GENERIC ARRAY TABLE
 //
 static void InitGArrayTab(GFCM *M){
-  M->A.cnts = (ACC *) Calloc(M->nPMod*M->nSym, sizeof(ACC));
+  M->A.cnts = (GACC *) Calloc(M->nPMod*M->nSym, sizeof(GACC));
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -140,7 +140,7 @@ void FreeGModel(GFCM *M){
       exit(1);
     break;
     default:
-      Free(M->A.cnts, M->nPMod * M->nSym * sizeof(ACC));
+      Free(M->A.cnts, M->nPMod * M->nSym * sizeof(GACC));
     break;
     }
   Free(M->freqs, (M->nSym+1) * sizeof(uint32_t));
@@ -235,14 +235,14 @@ void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
 // UPDATE GENERAL FCM
 //
 void UpdateGFCM(GFCM *M, uint32_t c){
-  ACC *ac;
+  GACC *ac;
   if(M->mode == CCH_TABLE){
     UpdateCCH(M->B, M->idx, c);
     }
   else{
     uint32_t n;
     ac = &M->A.cnts[M->idx*M->nSym];
-    if(++ac[c] == MAXACC_C){ 
+    if(++ac[c] == MAXGACC_C){ 
       for(n = 0 ; n < M->nSym ; ++n)
         ac[n]>>=1; 
       }
@@ -370,7 +370,7 @@ inline void ComputeGun(FCM *M, uint32_t *f){
 //
 void ComputeGFCM(GFCM *M){
   //HCC *h;
-  ACC *a;
+  GACC *a;
   uint32_t x;
   if(M->mode == HASH_TABLE){
     fprintf(stderr, "[x] Error: currently not implemented!\n");
