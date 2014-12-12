@@ -414,5 +414,10 @@ inline void GetIdx(uint8_t *p, GFCM *M){
   M->idx = ((M->idx-*(p-M->ctx)*M->mult)*M->nSym)+*p;
   }
 
+inline uint64_t GetIdxA(uint8_t *p, GFCM *M){
+  return (M->idx = ((M->idx-*(p-M->ctx)*M->mult)*M->nSym)+*p);
+  }
+
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

@@ -269,6 +269,7 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
 
   if(A->verbose) fprintf(stderr, "==[ MODELS ]=================\n");
   C->H.M = (GFCM **) Calloc(C->H.nStates, sizeof(GFCM *));
+  C->H.nFCM = C->H.nStates;
   for(n = 0 ; n < xc ; ++n)
     if(!strcmp("-H", xv[n])){
       if((ctx = atoi(xv[n+1])) > HMAX_CTX || ctx < HMIN_CTX){
@@ -284,6 +285,7 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
         }
       break;
       }
+  C->H.nFCM = C->H.nStates;
 
   for(n = 0 ; n < xc ; ++n) if(!strcmp("-D", xv[n])) ++nD;
   C->D.M = (FCM **) Calloc(nD, sizeof(FCM *));
@@ -300,6 +302,7 @@ void CreateModels(CLASSES *C, char *p, FILE *F, PARAM *A){
     }
 
   C->S.M = (GFCM **) Calloc(C->S.nStates, sizeof(GFCM *));
+  C->S.nFCM = C->S.nStates;
   for(n = 0 ; n < xc ; ++n)
     if(!strcmp("-S", xv[n])){
       if((ctx = atoi(xv[n+1])) > SMAX_CTX || ctx < SMIN_CTX){
@@ -329,9 +332,9 @@ void FreeModels(CLASSES *C, PARAM *A){
   for(n = 0 ; n < C->H.nStates ; ++n) FreeGModel(C->H.M[n]);
   for(n = 0 ; n < C->D.nFCM ; ++n) Free4DnaModel(C->D.M[n]);
   for(n = 0 ; n < C->S.nStates ; ++n) FreeGModel(C->S.M[n]);
-  Free(C->H.M, C->H.nFCM * sizeof(GFCM *));
-  Free(C->D.M, C->D.nFCM * sizeof(FCM  *));
-  Free(C->S.M, C->S.nFCM * sizeof(GFCM *));
+  Free(C->H.M, C->H.nStates * sizeof(GFCM *));
+  Free(C->D.M, C->D.nFCM    * sizeof(FCM  *));
+  Free(C->S.M, C->S.nStates * sizeof(GFCM *));
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -497,21 +500,26 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
 void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
   uint32_t x, s = strlen((char *)R->scores)-1, state;
   uint8_t sym;
+  uint64_t idx, k;
 
   // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
   while(s > 0 && R->scores[s] == '#') --s;
 
   for(x = 0 ; x < s ; ++x){
     B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
-    state = C->S.states[x];
 
-    GetIdx(B->buf+B->idx-1, C->S.M[state]);
+    state = (uint32_t) C->S.states[x]; //XXX: WTF?!
+    
+    idx = GetIdxA(B->buf+B->idx-1, C->S.M[state]);
     ComputeGFCM(C->S.M[state]);
     AESym(sym, (int *) C->S.M[state]->freqs, (int)
     C->S.M[state]->freqs[C->S.A.nSym], W);
     UpdateGFCM(C->S.M[state], sym);
 
     UpdateCBuffer(B);
+
+    for(k = 0 ; k < C->S.nStates ; ++k) //XXX: IMPROVE!
+      C->S.M[k]->idx = idx;             //XXX: SHAME ALGORITHM
     }
   }
 

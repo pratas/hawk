@@ -134,6 +134,7 @@ void        ComputeGFCM     (GFCM *);
 inline void GetIdx4DnaRev   (uint8_t *, FCM *);
 inline void GetIdx4Dna      (uint8_t *, FCM *);
 inline void GetIdx          (uint8_t *, GFCM *);
+inline uint64_t GetIdxA     (uint8_t *, GFCM *); 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
