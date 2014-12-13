@@ -67,6 +67,7 @@
 #include "reads.h"
 #include "dna.h"
 #include "hash.h"
+#include "phash.h"
 #include "cch.h"
 #include "classes.h"
 #include "models.h"

@@ -38,16 +38,6 @@ uint32_t AdjustContext(uint8_t n, uint32_t c){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static HCCs hzeroCnts = {0x00, 0x00, 0x00, 0x00};
-static HCCs hauxCnts;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// INITIALIZE SPECIFIC 4 SYMBOL HASH TABLE
-// 
-static void Init4DnaHashTab(FCM *M){
-  M->H.ent  = (ENTRY **) Calloc(HSIZE, sizeof(ENTRY *));
-  M->H.cnts = (HCCs  **) Calloc(HSIZE, sizeof(HCCs  *));
-  M->H.size = (ENTMAX *) Calloc(HSIZE, sizeof(ENTMAX ));
-  }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // INITIALIZE 4 SYMBOL ARRAY TABLE
@@ -64,34 +54,16 @@ static void InitGArrayTab(GFCM *M){
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// INSERT 4 SYMBOL HASH KEY
-//
-static void Insert4DnaKey(HASH *T, uint32_t h, uint64_t i){
-  T->ent[h] = (ENTRY *) Realloc(T->ent[h], (T->size[h]+1) * sizeof(ENTRY), 
-  sizeof(ENTRY));
-  T->ent[h][T->size[h]].key = (uint32_t) (i&0xffff);
-  T->size[h]++;
-  }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // RESET MODEL
 //
 void Reset4DnaModel(FCM *M){
-  uint32_t k;
   switch(M->mode){
     case CCH_TABLE:
       DeleteCCH(M->B);
       M->B = CreateCCH(CCH_SIZE, M->nSym);
     break;
     case HASH_TABLE:
-      for(k = 0 ; k < HSIZE ; ++k){
-        if(M->H.size[k]) Free(M->H.ent[k], M->H.size[k] * sizeof(ENTRY));
-        if(M->H.cnts[k]) Free(M->H.cnts[k], sizeof(HCCs)); 
-        }
-      Free(M->H.ent,  HSIZE * sizeof(ENTRY *)); 
-      Free(M->H.cnts, HSIZE * sizeof(HCCs  *)); 
-      Free(M->H.size, HSIZE * sizeof(ENTMAX )); 
-      Init4DnaHashTab(M);
+      ResetPHash(M->H);
     break;
     default:
       Free(M->A.cnts, (M->nPMod<<2) * sizeof(ACC)); 
@@ -105,19 +77,12 @@ void Reset4DnaModel(FCM *M){
 // FREE MODEL
 //
 void Free4DnaModel(FCM *M){
-  uint32_t k;
   switch(M->mode){
     case CCH_TABLE:
       DeleteCCH(M->B);
     break;
     case HASH_TABLE:
-      for(k = 0 ; k < HSIZE ; ++k){
-        if(M->H.size[k]) Free(M->H.ent[k], M->H.size[k] * sizeof(ENTRY));
-        if(M->H.cnts[k]) Free(M->H.cnts[k], sizeof(HCCs));
-        }
-      Free(M->H.ent,  HSIZE * sizeof(ENTRY *));
-      Free(M->H.cnts, HSIZE * sizeof(HCCs  *));
-      Free(M->H.size, HSIZE * sizeof(ENTMAX ));
+      DeletePHash(M->H);
     break;
     default: 
       Free(M->A.cnts, (M->nPMod<<2) * sizeof(ACC));
@@ -148,82 +113,16 @@ void FreeGModel(GFCM *M){
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// INSERT SPECIFIC 4 SYMBOL COUNTERS
-//
-static void Insert4DnaCnts(HASH *T, uint32_t h, uint32_t n, uint32_t k, 
-uint32_t s){
-  T->cnts[h] = (HCCs *) Realloc(T->cnts[h], (n+1)*sizeof(HCCs), sizeof(HCCs));
-  if(k < n) memmove(T->cnts[h][k+1], T->cnts[h][k], (n-k)*sizeof(HCCs));
-  T->cnts[h][k][0] =  s& 0x03;           
-  T->cnts[h][k][1] = (s&(0x03<<2))>>2;
-  T->cnts[h][k][2] = (s&(0x03<<4))>>4; 
-  T->cnts[h][k][3] = (s&(0x03<<6))>>6;
-  }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// GET FCM SPECIFIC 4 SYMBOL COUNTERS
-//
-static HCC *Get4DnaHCCnts(HASH *T, uint64_t key){
-  uint32_t k = 0, n, h = key % HSIZE;
-  uint64_t b = key & 0xffffffff0000;
-  for(n = T->size[h] ; n-- ; ){
-    if(((uint64_t) T->ent[h][n].key | b) == key)
-      switch(T->ent[h][n].cnts){
-        case 0: return T->cnts[h][k];
-        default:
-        hauxCnts[0] =  T->ent[h][n].cnts& 0x03;
-        hauxCnts[1] = (T->ent[h][n].cnts&(0x03<<2))>>2;
-        hauxCnts[2] = (T->ent[h][n].cnts&(0x03<<4))>>4;
-        hauxCnts[3] = (T->ent[h][n].cnts&(0x03<<6))>>6;
-        return hauxCnts;
-        }
-    if(T->ent[h][n].cnts == 0) ++k;
-    }
-  return NULL;
-  }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // UPDATE FCM COUNTERS
 //
 void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
   ACC *ac;
-  uint32_t n;
   uint64_t idx = (ir == 0) ? M->idx : M->idxRev;
   if(M->mode == CCH_TABLE){
     UpdateCCH(M->B, idx, c);
     }
   else if(M->mode == HASH_TABLE){
-    uint8_t s;
-    uint32_t i, k = 0, nh, h = idx % HSIZE;
-    uint64_t b = idx & 0xffffffff0000;
-    if(M->H.size[h] == MAXHSIZE) return;  // DISCARD DATA LARGER THAN MAXHSIZE
-    for(n = 0 ; n < M->H.size[h] ; ++n){ // TODO: PERHAPS RESET HASH IS BETTER
-      if((M->H.ent[h][n].key|b) == idx){
-        if(M->H.ent[h][n].cnts == 0){
-          if(++M->H.cnts[h][k][c] == MAXHCC_C){
-            M->H.cnts[h][k][0] >>= 1; M->H.cnts[h][k][1] >>= 1;
-            M->H.cnts[h][k][2] >>= 1; M->H.cnts[h][k][3] >>= 1;
-            }
-          return;
-          }
-        if((s=(M->H.ent[h][n].cnts>>(c<<1))&0x03) == MAXHCC_H){
-          nh = k;
-          for(i = n+1 ; i < M->H.size[h] ; ++i) 
-            if(M->H.ent[h][i].cnts == 0) ++nh;
-          Insert4DnaCnts(&M->H, h, nh, k, M->H.ent[h][n].cnts);
-          M->H.ent[h][n].cnts = 0; M->H.cnts[h][k][c]++;
-          return;
-          }
-        else{
-          M->H.ent[h][n].cnts &= ~(0x03<<(c<<1));
-          M->H.ent[h][n].cnts |= (++s<<(c<<1));
-          return;
-          }
-        }
-      if(!M->H.ent[h][n].cnts) ++k;
-      }
-    Insert4DnaKey(&M->H, h, idx); // IF KEY FOUND
-    M->H.ent[h][M->H.size[h]-1].cnts = (0x01<<(c<<1));
+    UpdatePHash(M->H, idx, c);
     }
   else{
     ac = &M->A.cnts[idx<<2];
@@ -274,7 +173,7 @@ FCM *Create4DnaFCM(uint32_t c, uint32_t a, uint8_t i, uint8_t n, PARAM *A){
       M->mode = 1;
       }
     else{
-      Init4DnaHashTab(M);
+      M->H = CreatePHash();
       M->mode = 2;
       }
     }
@@ -327,7 +226,7 @@ inline void Compute4DnaFCM(FCM *M){
   HCC *h;
   ACC *a;
   if(M->mode == HASH_TABLE){
-    if(!(h = Get4DnaHCCnts(&M->H, M->idx))) h = hzeroCnts;
+    if(!(h = GetPHashCounters(M->H, M->idx))) h = hzeroCnts;
     M->freqs[0] = 1+M->aDen*h[0]; M->freqs[1] = 1+M->aDen*h[1];
     M->freqs[2] = 1+M->aDen*h[2]; M->freqs[3] = 1+M->aDen*h[3];
     }
@@ -353,7 +252,7 @@ inline void ComputeGun(FCM *M, uint32_t *f){
       f[2] = 1+M->aDen*c[2]; f[3] = 1+M->aDen*c[3];
     break;
     case HASH_TABLE:
-      if(!(h = Get4DnaHCCnts(&M->H, M->idx))) h = hzeroCnts;
+      if(!(h = GetPHashCounters(M->H, M->idx))) h = hzeroCnts;
       f[0] = 1+M->aDen*h[0]; f[1] = 1+M->aDen*h[1];
       f[2] = 1+M->aDen*h[2]; f[3] = 1+M->aDen*h[3];
     break;
@@ -369,7 +268,6 @@ inline void ComputeGun(FCM *M, uint32_t *f){
 // COMPUTE GENERAL FCM PROBABILITIES
 //
 void ComputeGFCM(GFCM *M){
-  //HCC *h;
   GACC *a;
   uint32_t x;
   if(M->mode == HASH_TABLE){
@@ -414,10 +312,12 @@ inline void GetIdx(uint8_t *p, GFCM *M){
   M->idx = ((M->idx-*(p-M->ctx)*M->mult)*M->nSym)+*p;
   }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// CALC INDEX AND RETURN
+//
 inline uint64_t GetIdxA(uint8_t *p, GFCM *M){
   return (M->idx = ((M->idx-*(p-M->ctx)*M->mult)*M->nSym)+*p);
   }
-
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

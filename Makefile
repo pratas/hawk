@@ -7,8 +7,8 @@ CFLAGS = -O2 -Wall $(CPLP) -DPROGRESS -DMEMORY #-DDEBUG -DREVERSE
 LIBS   = -lm
 DEPS   = defs.h
 PROGS  = $(BIN)/Hawk
-OBJS   = mem.o misc.o args.o param.o reads.o dna.o hash.o cch.o classes.o \
-         models.o info.o gun.o bitio.o arith.o arith_aux.o
+OBJS   = mem.o misc.o args.o param.o reads.o dna.o hash.o cch.o phash.o \
+         classes.o models.o info.o gun.o bitio.o arith.o arith_aux.o
 #-----------------------------------------------------------------------------
 all:
 	$(MAKE) progs
@@ -29,6 +29,8 @@ dna.o: dna.c dna.h $(DEPS)
 	$(CC) -c $(CFLAGS) dna.c
 hash.o: hash.c hash.h $(DEPS)
 	$(CC) -c $(CFLAGS) hash.c
+phash.o: phash.c phash.h $(DEPS)
+	$(CC) -c $(CFLAGS) phash.c
 cch.o: cch.c cch.h $(DEPS)
 	$(CC) -c $(CFLAGS) cch.c
 classes.o: classes.c classes.h $(DEPS)

@@ -5,6 +5,7 @@
 #include "defs.h"
 #include "param.h"
 #include "mem.h"
+#include "phash.h"
 #include "cch.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -12,32 +13,9 @@
 //
 typedef uint16_t    ACC;        // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
 typedef uint16_t    GACC;       // SIZE OF COUNTERS FOR COUNTER TABLE [8|16|32]
-typedef uint8_t     HCC;        // SIZE OF COUNTERS FOR HASH TABLE
 
-typedef uint16_t    ENTMAX;     // ENTRY SIZE (NKEYS FOR EACH HINDEX)
-typedef HCC         HCCs[4];    // DEFAULT HASH COUNTERS
-
-#define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
 #define MAXACC_C    (((uint64_t)1<<(sizeof(ACC)   *8))-1)
 #define MAXGACC_C   (((uint64_t)1<<(sizeof(GACC)  *8))-1)
-#define MAXHCC_C    (((uint64_t)1<<(sizeof(HCC)   *8))-1)
-#define MAXHCC_H    3
-
-// HASH
-#define HSIZE       33554471 //16777259 // USE VALUE HIGHER THAN 24 BITS
-
-typedef struct{       // ENTRY FOR 4 SYMBOLS
-  uint16_t key;       // THE KEY (INDEX / HASHSIZE) STORED IN THIS ENTRY
-  HCC      cnts;      // SMALL COUNTERS [2 BITS P/ SYMBOL]
-  }
-ENTRY;
-
-typedef struct{       // HASH FOR 4 SYMBOLS
-  ENTMAX   *size;     // NUMBER OF KEYS FOR EACH ENTRY
-  ENTRY    **ent;     // THE HEADS OF THE HASH TABLE LISTS
-  HCCs     **cnts;    // THE CONTEXT COUNTERS
-  }
-HASH;
 
 typedef struct{
   ACC      *cnts;     // TABLE COUNTERS
@@ -61,7 +39,7 @@ typedef struct{
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
   ARRAY    A;         // COUNTER-TABLE LINK
-  HASH     H;         // HASH-TABLE LINK
+  PHASH    *H;        // HASH-TABLE LINK
   CCH      *B;        // CCH-TABLE LINK
   }
 FCM;
