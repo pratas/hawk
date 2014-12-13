@@ -42,9 +42,9 @@ uint64_t garbage;
 #define DEF_REVERSE 0
 #define DEF_ADJUST  0
 #define DEF_VERSION 0
-#define DEF_ENT_CTX 5
+#define DEF_ENT_CTX 12
 #define DEF_ENT_DEN 1
-#define DEF_MOD_CTX 5
+#define DEF_MOD_CTX 9
 #define DEF_MOD_DEN 1
 #define DEF_STATES  3
 #define MIN_STATES  1

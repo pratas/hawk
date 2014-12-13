@@ -164,10 +164,10 @@ uint32_t s){
 // GET FCM SPECIFIC 4 SYMBOL COUNTERS
 //
 static HCC *Get4DnaHCCnts(HASH *T, uint64_t key){
-  uint32_t k = 0, n, h = key%HSIZE;
-  uint64_t b = key&0xffffffff0000;
-  for(n = 0 ; n < T->size[h] ; ++n){
-    if(((uint64_t) T->ent[h][n].key|b) == key)
+  uint32_t k = 0, n, h = key % HSIZE;
+  uint64_t b = key & 0xffffffff0000;
+  for(n = T->size[h] ; n-- ; ){
+    if(((uint64_t) T->ent[h][n].key | b) == key)
       switch(T->ent[h][n].cnts){
         case 0: return T->cnts[h][k];
         default:
@@ -177,7 +177,7 @@ static HCC *Get4DnaHCCnts(HASH *T, uint64_t key){
         hauxCnts[3] = (T->ent[h][n].cnts&(0x03<<6))>>6;
         return hauxCnts;
         }
-    if(T->ent[h][n].cnts == 0) k++;
+    if(T->ent[h][n].cnts == 0) ++k;
     }
   return NULL;
   }

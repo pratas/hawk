@@ -480,42 +480,44 @@ void CompressStream(GFCM *M, FILE *F, CBUF *B, uint8_t sym, uint8_t nSym){
 // COMPRESS HEADER
 //
 void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
-  uint32_t x, s = strlen((char *) R->header1[1]);
+  uint32_t x, s = strlen((char *) R->header1[1]), state;
   uint8_t sym;
+  uint64_t idx = C->H.M[0]->idx;
+  
   for(x = 0 ; x < s ; ++x){
     B->buf[B->idx] = sym = C->H.A.numeric[R->header1[1][x]];
+    state = (uint32_t) C->H.states[x]; //XXX: Why does it need cast?
 
-    GetIdx(B->buf+B->idx-1, C->H.M[0]);
-    ComputeGFCM(C->H.M[0]);
-    AESym(sym, (int *)C->H.M[0]->freqs, (int)C->H.M[0]->freqs[C->H.A.nSym], W);
-    UpdateGFCM(C->H.M[0], sym);
-
+    GetIdx(B->buf+B->idx-1, C->H.M[state]);
+    ComputeGFCM(C->H.M[state]);
+    AESym(sym, (int *) C->H.M[state]->freqs, (int)
+    C->H.M[state]->freqs[C->H.A.nSym], W);
+    UpdateGFCM(C->H.M[state], sym);
     UpdateCBuffer(B);
+    if(x < s-1) C->H.M[(uint32_t) C->H.states[x+1]]->idx = idx;
     }
+  C->H.M[0]->idx = idx;
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // COMPRESS SCORES WITH CONSTANT LENGTH
 //
 void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
-  uint32_t x, s = strlen((char *)R->scores)-1, state;
+  uint32_t x, s = strlen((char *)R->scores), state;
   uint8_t sym;
-  uint64_t idx = 0;
+  uint64_t idx = C->S.M[0]->idx;
 
   // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
-  while(s > 0 && R->scores[s] == '#') --s;
+  while(s > 0 && R->scores[s-1] == '#') --s;
 
   for(x = 0 ; x < s ; ++x){
     B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
-
-    state = (uint32_t) C->S.states[x]; //XXX: WTF?!
-    
+    state = (uint32_t) C->S.states[x]; //XXX: Why does it need cast?
     idx = GetIdxA(B->buf+B->idx-1, C->S.M[state]);
     ComputeGFCM(C->S.M[state]);
     AESym(sym, (int *) C->S.M[state]->freqs, (int)
     C->S.M[state]->freqs[C->S.A.nSym], W);
     UpdateGFCM(C->S.M[state], sym);
-
     UpdateCBuffer(B);
     if(x < s-1) C->S.M[(uint32_t) C->S.states[x+1]]->idx = idx;
     }
@@ -534,7 +536,7 @@ PARAM *A, SHOTGUN *Gun, GFCM *ME, GFCM *MM){
   for(x = 0 ; x < size ; ++x){
 
     s = R->bases[x]; 
-    n = (s == 'N' ? C->D.lfb : C->D.A.numeric[s]); // BREAK ON C->D.lfb
+    n = (s == 'N' ? C->D.lfb : C->D.A.numeric[s]); // TODO: BREAK ON C->D.lfb
     B->buf[B->idx] = n;
     update = (A->filter == 1 ? C->D.bica[C->D.idx] : 1);
     Gun->sym[x] = n;
@@ -625,8 +627,8 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   while(GetRead(F, Read)){
 
 //    CompressHeader   (W, C, Read, BH);
-    CompressCSScores (W, C, Read, BS);
-//    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
+//    CompressCSScores (W, C, Read, BS);
+    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
 
     tmp = Read->header1[1];
     Read->header1[1] = Read->header1[0];

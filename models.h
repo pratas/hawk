@@ -18,9 +18,9 @@ typedef uint16_t    ENTMAX;     // ENTRY SIZE (NKEYS FOR EACH HINDEX)
 typedef HCC         HCCs[4];    // DEFAULT HASH COUNTERS
 
 #define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
-#define MAXACC_C    (((uint64_t)1<<(sizeof(ACC)*8))-1)
-#define MAXGACC_C   (((uint64_t)1<<(sizeof(GACC)*8))-1)
-#define MAXHCC_C    (((uint64_t)1<<(sizeof(HCC)*8))-1)
+#define MAXACC_C    (((uint64_t)1<<(sizeof(ACC)   *8))-1)
+#define MAXGACC_C   (((uint64_t)1<<(sizeof(GACC)  *8))-1)
+#define MAXHCC_C    (((uint64_t)1<<(sizeof(HCC)   *8))-1)
 #define MAXHCC_H    3
 
 // HASH
