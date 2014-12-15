@@ -9,7 +9,7 @@ typedef uint8_t     HCC;       // SIZE OF COUNTERS FOR HASH TABLE
 typedef uint16_t    ENTMAX;    // ENTRY SIZE (NKEYS FOR EACH HINDEX)
 typedef HCC         HCCs[4];   // DEFAULT HASH COUNTERS
 
-#define HSIZE       33554471 // USE VALUE HIGHER THAN 24 BITS
+#define HSIZE       25165843 //33554471   // USE VALUE HIGHER THAN 24 BITS
 #define MAXHSIZE    (((uint64_t)1<<(sizeof(ENTMAX)*8))-1)
 #define MAXHC       (((uint64_t)1<<(sizeof(HCC)   *8))-1)
 #define MAXHH       3

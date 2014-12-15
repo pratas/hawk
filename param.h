@@ -33,7 +33,7 @@
   "-S 3"
 #define LEVEL_6                                           \
   "-H 3 "                                                 \
-  "-D 4 -D 8 -D 12 -D 16 "                                \
+  "-D 4 -D 9 -D 13 -D 17 "                                \
   "-S 3"
 #define LEVEL_7                                           \
   "-H 3 "                                                 \

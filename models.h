@@ -39,7 +39,7 @@ typedef struct{
   uint8_t  nSym;      // FCM NUMBER OF SYMBOLS
   uint8_t  mode;      // USING HASH-TABLES OR NOT [COUNTER=0]
   ARRAY    A;         // COUNTER-TABLE LINK
-  PHASH    *H;        // HASH-TABLE LINK
+  PHASH    *H;        // HASH-TABLE LINK WITH 16 BITS
   CCH      *B;        // CCH-TABLE LINK
   }
 FCM;

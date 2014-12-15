@@ -55,7 +55,7 @@ void DeletePHash(PHASH *H){
 static void InsertPHashKey(PHASH *T, uint32_t h, uint64_t i){
   T->ent[h] = (ENTRY *) Realloc(T->ent[h], (T->size[h]+1) * sizeof(ENTRY),
   sizeof(ENTRY));
-  T->ent[h][T->size[h]].key = (KEYP) (i&0x00000000ffff);
+  T->ent[h][T->size[h]].key = (KEYP) (i&0xffff);
   T->size[h]++;
   }
 
@@ -75,9 +75,9 @@ uint32_t s){
 
 HCC *GetPHashCounters(PHASH *T, uint64_t key){
   uint32_t k = 0, n, h = key % HSIZE;
-  KEYP     b = key & 0x00000000ffff;
+  KEYP     b = key & 0xffff;
 
-  for(n = T->size[h] ; n-- ; ){
+  for(n = 0 ; n < T->size[h] ; ++n){
     if(T->ent[h][n].key == b)
       switch(T->ent[h][n].cnts){
         case 0: return T->cnts[h][k];
@@ -98,13 +98,14 @@ HCC *GetPHashCounters(PHASH *T, uint64_t key){
 void UpdatePHash(PHASH *H, uint64_t idx, uint8_t c){
   uint8_t  s;
   uint32_t n, i, k = 0, nh, h = idx % HSIZE;
-  KEYP     b = idx & 0x00000000ffff;
+  KEYP     b = idx & 0xffff;
 
   if(H->size[h] == MAXHSIZE) return;  // DISCARD DATA LARGER THAN MAXHSIZE
   
-  for(n = 0 ; n < H->size[h] ; ++n){ // TODO: PERHAPS RESET HASH IS BETTER
+  for(n = 0 ; n < H->size[h] ; ++n){
     if(H->ent[h][n].key == b){
 
+      // UPDATE LARGE COUNTERS
       if(H->ent[h][n].cnts == 0){
         if(++H->cnts[h][k][c] == MAXHC){
           H->cnts[h][k][0] >>= 1; H->cnts[h][k][1] >>= 1;
@@ -113,6 +114,7 @@ void UpdatePHash(PHASH *H, uint64_t idx, uint8_t c){
         return;
         }
 
+      // UPDATE SMALL COUNTERS : IF REACHES MAXHH CHANGE TO LARGE COUNTERS
       if((s=(H->ent[h][n].cnts>>(c<<1))&0x03) == MAXHH){
         nh = k;
         for(i = n+1 ; i < H->size[h] ; ++i)
@@ -131,6 +133,7 @@ void UpdatePHash(PHASH *H, uint64_t idx, uint8_t c){
       }
     if(!H->ent[h][n].cnts) ++k;
     }
+
   InsertPHashKey(H, h, idx); // IF KEY FOUND
   H->ent[h][H->size[h]-1].cnts = (0x01<<(c<<1));
   }
