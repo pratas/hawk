@@ -5,7 +5,9 @@
 #include "hash.h"
 
 typedef uint8_t C_CCH;    // CCH COUNTERS PRECISION
-#define CCH_SIZE 67108879 // 1<<27 //1193711 //16777259 
+//#define CCH_SIZE 67108879 // 1<<27 //1193711 //16777259 
+//#efine CCH_SIZE 268435459 // 1<<27 //1193711 //16777259 
+#define CCH_SIZE 536870923 // 1<<27 //1193711 //16777259 
 #define MAX_CCH   (((uint64_t)1<<(sizeof(C_CCH)*8))-1)   // MAX CCH COUNTER
 
 typedef struct{

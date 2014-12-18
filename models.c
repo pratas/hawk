@@ -5,6 +5,11 @@
 #include "misc.h"
 #include "dna.h"
 
+static uint64_t XHASH(uint64_t x){
+  return (x * 12582917 /*786433*/ + 196613) % 68719476735;
+     // 19m = 12582917 (but lower error)
+  }
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // CALCULATE ALPHA DEN BASED ON CONTEXT AND ALPHABET CARDINALITY 
 // 
@@ -122,9 +127,12 @@ void Update4DnaFCM(FCM *M, uint32_t c, uint8_t ir){
     UpdateCCH(M->B, idx, c);
     }
   else if(M->mode == HASH_TABLE){
-    UpdatePHash(M->H, idx, c);
+    UpdatePHash(M->H, XHASH(idx), c);
     }
   else{
+    #ifdef PREFETCHING
+    _mm_prefetch((ACC *)&M->A.cnts[idx<<2], _MM_HINT_T1);
+    #endif
     ac = &M->A.cnts[idx<<2];
     if(++ac[c] == MAXACC_C){ ac[0]>>=1; ac[1]>>=1; ac[2]>>=1; ac[3]>>=1; }
     }
@@ -226,7 +234,7 @@ inline void Compute4DnaFCM(FCM *M){
   HCC *h;
   ACC *a;
   if(M->mode == HASH_TABLE){
-    if(!(h = GetPHashCounters(M->H, M->idx))) h = hzeroCnts;
+    if(!(h = GetPHashCounters(M->H, XHASH(M->idx)))) h = hzeroCnts;
     M->freqs[0] = 1+M->aDen*h[0]; M->freqs[1] = 1+M->aDen*h[1];
     M->freqs[2] = 1+M->aDen*h[2]; M->freqs[3] = 1+M->aDen*h[3];
     }
@@ -252,7 +260,7 @@ inline void ComputeGun(FCM *M, uint32_t *f){
       f[2] = 1+M->aDen*c[2]; f[3] = 1+M->aDen*c[3];
     break;
     case HASH_TABLE:
-      if(!(h = GetPHashCounters(M->H, M->idx))) h = hzeroCnts;
+      if(!(h = GetPHashCounters(M->H, XHASH(M->idx)))) h = hzeroCnts;
       f[0] = 1+M->aDen*h[0]; f[1] = 1+M->aDen*h[1];
       f[2] = 1+M->aDen*h[2]; f[3] = 1+M->aDen*h[3];
     break;

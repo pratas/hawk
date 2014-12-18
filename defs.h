@@ -6,7 +6,15 @@
 #include <inttypes.h>
 #include <unistd.h>
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
+#define ABS(a)   ((a)>0?(a):-(a))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
+#ifdef __SSE__
+#   include <xmmintrin.h>
+#else
+#   define _mm_prefetch(a,b)
+#endif
 
 uint64_t garbage;
 

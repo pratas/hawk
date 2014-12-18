@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "phash.h"
+#include "misc.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -52,10 +53,10 @@ void DeletePHash(PHASH *H){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static void InsertPHashKey(PHASH *T, uint32_t h, uint64_t i){
+static void InsertPHashKey(PHASH *T, uint32_t h, KEYP b){
   T->ent[h] = (ENTRY *) Realloc(T->ent[h], (T->size[h]+1) * sizeof(ENTRY),
   sizeof(ENTRY));
-  T->ent[h][T->size[h]].key = (KEYP) (i&0xffff);
+  T->ent[h][T->size[h]].key = b;
   T->size[h]++;
   }
 
@@ -134,8 +135,18 @@ void UpdatePHash(PHASH *H, uint64_t idx, uint8_t c){
     if(!H->ent[h][n].cnts) ++k;
     }
 
-  InsertPHashKey(H, h, idx); // IF KEY FOUND
+  InsertPHashKey(H, h, b); // INSERT SMALL COUNTERS
   H->ent[h][H->size[h]-1].cnts = (0x01<<(c<<1));
+  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void PrintNEnt(PHASH *H){
+  FILE *E = Fopen("ENT.txt", "w");
+  int x;
+    for(x = 0 ; x < HSIZE ; ++x)
+    fprintf(E, "%u\n", H->size[x]);
+  fclose(E);
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

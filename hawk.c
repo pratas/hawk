@@ -58,6 +58,7 @@
 #include <time.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "defs.h"
 #include "mem.h"
@@ -69,6 +70,7 @@
 #include "hash.h"
 #include "phash.h"
 #include "cch.h"
+#include "sfcm.h"
 #include "classes.h"
 #include "models.h"
 #include "gun.h"
@@ -489,7 +491,7 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
     B->buf[B->idx] = sym = C->H.A.numeric[R->header1[1][x]];
     state = (uint32_t) C->H.states[x]; //XXX: Why does it need cast?
 
-    GetIdx(B->buf+B->idx-1, C->H.M[state]);
+    idx = GetIdxA(B->buf+B->idx-1, C->H.M[state]);
     ComputeGFCM(C->H.M[state]);
     AESym(sym, (int *) C->H.M[state]->freqs, (int)
     C->H.M[state]->freqs[C->H.A.nSym], W);
@@ -503,17 +505,16 @@ void CompressHeader(FILE *W, CLASSES *C, Read *R, CBUF *B){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // COMPRESS SCORES WITH CONSTANT LENGTH
 //
-void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
+void CompressScores1(FILE *W, CLASSES *C, Read *R, CBUF *B){
   uint32_t x, s = strlen((char *)R->scores), state;
   uint8_t sym;
   uint64_t idx = C->S.M[0]->idx;
 
-  // REMOVE "KILLER BEES" [ONLY FROM CONSTANT SIZE READS]
-  while(s > 0 && R->scores[s-1] == '#') --s;
+  while(s > 0 && R->scores[s-1] == '#') --s; // REMOVE "KILLER BEES"
 
   for(x = 0 ; x < s ; ++x){
     B->buf[B->idx] = sym = C->S.A.numeric[R->scores[x]];
-    state = (uint32_t) C->S.states[x]; //XXX: Why does it need cast?
+    state = (uint32_t) C->S.states[x];
     idx = GetIdxA(B->buf+B->idx-1, C->S.M[state]);
     ComputeGFCM(C->S.M[state]);
     AESym(sym, (int *) C->S.M[state]->freqs, (int)
@@ -524,6 +525,45 @@ void CompressCSScores(FILE *W, CLASSES *C, Read *R, CBUF *B){
     }
   C->S.M[0]->idx = idx;
   }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// COMPRESS SCORES
+//
+// IT HAS BEEN (SLIGHTLY) ADAPTED FROM JAMES BONFIELD PROGRAM: FQZ_COMP (SCORES 
+// MODEL IS THE SAME).
+//
+// BONFIELD, JAMES K., AND MATTEW V. MAHONEY. "COMPRESSION OF FASTQ AND SAM 
+// FORMAT SEQUENCING DATA." PLOS ONE 8.3 (2013): e59190.
+// 
+// https://sourceforge.net/projects/fqzcomp
+//
+#define QMAX  64 // 128 // KEEP AS POWER OF 2
+#define QBITS 12 // SIZE OF THE CONTEXT 2x QUALS
+#define QSIZE (1<<QBITS)
+
+void CompressScores2(FILE *W, SFCM *M, char *qual, int len){
+  unsigned int last = 0;
+  int delta = 5, i, len2 = len, q1 = 0, q2 = 0;
+
+  while(len2 > 0 && qual[len2-1] == '#') --len2; // REMOVE "KILLER BEES"
+
+  for(i = 0 ; i < len2 ; ++i){
+    uint8_t q = (qual[i]-'!') & (QMAX-1);
+    EncodeSFCM(W, M, last, q);
+
+    last   = ((MAX(q1, q2)<<6)+q)&((1<<QBITS)-1);
+    last  += (q1==q2)<<QBITS;
+    delta += (q1>q)*(q1-q);
+    last  += (MIN(7*8, delta)&0xf8)<<(QBITS-2);
+    last  += (MIN(i+15, 127)&(15<<3))<<(QBITS+1);
+
+    q2 = q1; 
+    q1 = q;
+    }
+
+  if(len != len2) EncodeSFCM(W, M, last, QMAX-1);
+  }
+
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // COMPRESS DNA BASES
@@ -601,6 +641,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   CBUF *BD   = CreateCBuffer(DEF_BUF_SIZE, DEF_BUF_GUARD); // DNA
   CBUF *BM   = NULL, *BE = NULL;
   GFCM *ME   = NULL, *MM = NULL;
+  SFCM *S    = CreateSFCM(1048576, QMAX);
   uint32_t readIdx = 0;
   uint8_t  *tmp;
   
@@ -626,10 +667,10 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   EncodeParameters(C, A, W);
 
   while(GetRead(F, Read)){
-
-//    CompressHeader   (W, C, Read, BH);
-//    CompressCSScores (W, C, Read, BS);
-    CompressBases    (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
+    CompressHeader  (W, C, Read, BH);
+//  CompressScores1 (W, C, Read, BS);
+    CompressScores2 (W, S, (char*) Read->scores, strlen((char*)Read->scores)-1);
+    CompressBases   (W, C, Read, BD, BE, BM, A, Gun, ME, MM);
 
     tmp = Read->header1[1];
     Read->header1[1] = Read->header1[0];
@@ -642,6 +683,7 @@ void Compress(CLASSES *C, PARAM *A, FILE *F, char *fn, char *cn){
   fclose(W);
   DeleteShotgun(Gun, C->D.nFCM, C->S.maxLine, 4);
   FreeRead(Read);
+  DeleteSFCM(S);
   RemoveCBuffer(BH);
   RemoveCBuffer(BS);
   RemoveCBuffer(BD);
@@ -803,7 +845,7 @@ int main(int argc, char *argv[]){
     "  -r            use reversions (DNA sequence only),            \n" 
     #endif
     #ifdef MEMORY
-    "  -m  <MEMORY>  maximum hash memory for deepest model (in MB). \n" 
+    "  -m  <MEMORY>  maximum hash memory for deepest model (in MB), \n" 
     #endif
     "  -c            use CCH instead of hash (deepest contexts).    \n" 
     "                                                               \n"

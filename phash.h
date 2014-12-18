@@ -6,7 +6,7 @@
 
 typedef uint16_t    KEYP;      // PRECISION OF EACH KEY
 typedef uint8_t     HCC;       // SIZE OF COUNTERS FOR HASH TABLE
-typedef uint16_t    ENTMAX;    // ENTRY SIZE (NKEYS FOR EACH HINDEX)
+typedef uint8_t     ENTMAX;    // ENTRY SIZE (NKEYS FOR EACH HINDEX)
 typedef HCC         HCCs[4];   // DEFAULT HASH COUNTERS
 
 #define HSIZE       25165843 //33554471   // USE VALUE HIGHER THAN 24 BITS
@@ -34,6 +34,7 @@ PHASH    *CreatePHash       (void);
 void     DeletePHash        (PHASH *);
 HCC      *GetPHashCounters  (PHASH *, uint64_t);
 void     UpdatePHash        (PHASH *, uint64_t, uint8_t);
+void     PrintNEnt          (PHASH *);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
