@@ -2,6 +2,7 @@
 #define CLASSES_H_INCLUDED
 
 #include "defs.h"
+#include "param.h"
 #include "models.h"
 
 typedef struct{
@@ -17,6 +18,12 @@ CLASSES;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 CLASSES  *InitClasses    (void);
+void     InitAlphabets   (CLASSES *);
+void     FreeAlphabets   (CLASSES *);
+void     PrintStreamInfo (CLASSES *);
+void     ParseFile       (CLASSES *, FILE *, PARAM *);
+void     CreateModels    (CLASSES *, char *, FILE *, PARAM *);
+void     FreeModels      (CLASSES *, PARAM *);
 void     SetValues       (CLASSES *, PARAM *);  
 void     CreateAuxStates (CLASSES *);
 void     DeleteAuxStates (CLASSES *);
